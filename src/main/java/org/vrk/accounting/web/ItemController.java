@@ -1,36 +1,64 @@
 package org.vrk.accounting.web;
 
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.dto.ItemDTO;
+import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.service.ItemService;
+import org.vrk.accounting.util.secure.RoleGuard;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/item")
+@RequestMapping("/api/items")
 @RequiredArgsConstructor
-@Tag(name = "Работа с вещами")
 public class ItemController {
-
     private final ItemService itemService;
 
-    /**
-     * Получить все материалы, где пользователь с данным UUID — currentUser.
-     */
-    @GetMapping("/my/{userId}")
-    public ResponseEntity<List<ItemDTO>> getMyItems(@PathVariable UUID userId) {
-        List<ItemDTO> dtos = itemService.getItemsByCurrentUser(userId);
-        return ResponseEntity.ok(dtos);
+    @GetMapping("/my")
+    public List<ItemDTO> getMyItems(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") Role role
+    ) {
+        RoleGuard.require(role, Role.ROLE_USER, Role.ROLE_MODERATOR);
+        return itemService.getItemsByCurrentUser(userId);
     }
 
-    @GetMapping("/get/admin")
-    public ResponseEntity<?> getAllItemsByAdmin(@RequestBody ItemEmployee itemEmployee) {
-        return ResponseEntity.ok(itemService.getItemsByAdmin(itemEmployee));
+    @GetMapping("/all")
+    public List<ItemDTO> getAllItems(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") Role role
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        return itemService.getItemsByAdmin(userId);
     }
 
+    @PostMapping
+    public ItemDTO createItem(
+            @RequestHeader("X-User-Role") Role role,
+            @RequestBody ItemDTO dto
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        return itemService.createItem(dto);
+    }
+
+    @PutMapping("/{id}")
+    public ItemDTO updateItem(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Role") Role role,
+            @RequestBody ItemDTO dto
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        return itemService.updateItem(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteItem(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Role") Role role
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        itemService.deleteItem(id);
+    }
 }

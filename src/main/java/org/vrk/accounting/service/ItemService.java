@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Item;
 import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.dto.ItemDTO;
+import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
 
@@ -76,8 +77,15 @@ public class ItemService {
                 .collect(Collectors.toList());
     }
 
-    public List<Item> getItemsByAdmin(ItemEmployee itemEmployee) {
-        return itemRepo.findAllByResponsible(itemEmployee);
+    public List<ItemDTO> getItemsByAdmin(UUID responsibleUserId) {
+        if (empRepo.findById(responsibleUserId).orElseThrow().getRole() == Role.ROLE_MODERATOR) {
+            List<Item> items = itemRepo.findAllByResponsible_Id(responsibleUserId);
+            return items.stream()
+                    .map(this::toDto)
+                    .collect(Collectors.toList());
+        } else {
+            throw new RuntimeException();
+        }
     }
 
     /** Создать новый Item */
@@ -93,14 +101,6 @@ public class ItemService {
         Item item = itemRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Item not found, id=" + id));
         return toDto(item);
-    }
-
-    /** Список всех Item */
-    @Transactional
-    public List<ItemDTO> listItems() {
-        return itemRepo.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
     }
 
     /** Обновить существующий Item */

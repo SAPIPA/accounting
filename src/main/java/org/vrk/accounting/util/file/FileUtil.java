@@ -1,4 +1,4 @@
-package org.vrk.accounting.service.file;
+package org.vrk.accounting.util.file;
 
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
