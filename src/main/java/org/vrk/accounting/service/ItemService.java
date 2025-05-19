@@ -10,6 +10,7 @@ import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,8 +65,15 @@ public class ItemService {
                 .build();
     }
 
-    public List<Item> getAllItemsByUser(ItemEmployee itemEmployee) {
-        return itemRepo.findAllByCurrentItemEmployee(itemEmployee);
+    /**
+     * Получить все вещи, где данный пользователь — фактический владелец.
+     */
+    @Transactional
+    public List<ItemDTO> getItemsByCurrentUser(UUID currentUserId) {
+        List<Item> items = itemRepo.findAllByCurrentItemEmployee_Id(currentUserId);
+        return items.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     public List<Item> getItemsByAdmin(ItemEmployee itemEmployee) {
