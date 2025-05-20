@@ -7,6 +7,7 @@ import org.vrk.accounting.domain.Application;
 import org.vrk.accounting.domain.dto.ApplicationDTO;
 import org.vrk.accounting.repository.ApplicationRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,56 +16,56 @@ import java.util.stream.Collectors;
 public class ApplicationService {
     private final ApplicationRepository repo;
 
-    private Application toEntity(ApplicationDTO dto) {
-        return Application.builder()
-                .id(dto.getId())
-                .type(dto.getType())
-                .body(dto.getBody())
-                .sendDate(dto.getSendDate())
-                .build();
-    }
-
-    private ApplicationDTO toDto(Application entity) {
+    private ApplicationDTO toDto(Application e) {
         return ApplicationDTO.builder()
-                .id(entity.getId())
-                .type(entity.getType())
-                .body(entity.getBody())
-                .sendDate(entity.getSendDate())
+                .id(e.getId())
+                .type(e.getType())
+                .body(e.getBody())
+                .sendDate(e.getSendDate())
                 .build();
-    }
-
-    /** Создать новое заявление */
-    @Transactional
-    public ApplicationDTO create(ApplicationDTO dto) {
-        Application saved = repo.save(toEntity(dto));
-        return toDto(saved);
-    }
-
-    /** Получить заявление по ID */
-    @Transactional
-    public ApplicationDTO getById(Long id) {
-        Application app = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Application not found: id=" + id));
-        return toDto(app);
     }
 
     /** Список всех заявлений */
     @Transactional
-    public List<ApplicationDTO> list() {
+    public List<ApplicationDTO> listAll() {
         return repo.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    /** Обновить существующее заявление */
+    /** Получить конкретное заявление */
+    @Transactional
+    public ApplicationDTO getById(Long id) {
+        Application e = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Заявление не найдено: id=" + id));
+        return toDto(e);
+    }
+
+    /** Создать новое заявление */
+    @Transactional
+    public ApplicationDTO create(ApplicationDTO dto) {
+        Application e = Application.builder()
+                .type(dto.getType())
+                .body(dto.getBody())
+                .sendDate(LocalDateTime.now())
+                .build();
+        Application saved = repo.save(e);
+        return toDto(saved);
+    }
+
+    /** Обновить существующее заявление (type и body) */
     @Transactional
     public ApplicationDTO update(Long id, ApplicationDTO dto) {
-        Application existing = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Application not found: id=" + id));
-        existing.setType(dto.getType());
-        existing.setBody(dto.getBody());
-        existing.setSendDate(dto.getSendDate());
-        Application updated = repo.save(existing);
+        Application e = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Заявление не найдено: id=" + id));
+        if (dto.getType() != null) {
+            e.setType(dto.getType());
+        }
+        if (dto.getBody() != null) {
+            e.setBody(dto.getBody());
+        }
+        // sendDate не меняем
+        Application updated = repo.save(e);
         return toDto(updated);
     }
 
@@ -72,7 +73,7 @@ public class ApplicationService {
     @Transactional
     public void delete(Long id) {
         if (!repo.existsById(id)) {
-            throw new IllegalArgumentException("Application not found: id=" + id);
+            throw new IllegalArgumentException("Заявление не найдено: id=" + id);
         }
         repo.deleteById(id);
     }
