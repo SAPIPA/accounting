@@ -41,6 +41,21 @@ public class ItemEmployeeController {
     }
 
     /**
+     * Админ получает всех commission-members, чей factWorkplace.objId совпадает с его.
+     * Заголовки:
+     *   X-User-Id   – UUID администратора
+     *   X-User-Role – ROLE_MODERATOR
+     */
+    @GetMapping("/commission-members")
+    public List<ItemEmployeeDTO> getCommissionMembers(
+            @RequestHeader("X-User-Id")   UUID userId,
+            @RequestHeader("X-User-Role") Role role
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        return service.getCommissionMembersByAdmin(userId);
+    }
+
+    /**
      * Обновление пользователя — только ROLE_MODERATOR
      * */
     @PutMapping("/{id}")

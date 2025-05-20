@@ -7,6 +7,7 @@ import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.Place;
 import org.vrk.accounting.domain.RZDEmployee;
 import org.vrk.accounting.domain.dto.ItemEmployeeDTO;
+import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.PlaceRepository;
 import org.vrk.accounting.repository.RZDEmployeeRepository;
@@ -71,6 +72,30 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "ItemEmployee not found, id=" + id));
         return toDto(e);
+    }
+
+    /**
+     * Для админа: получить всех сотрудников ROLE_COMMISSION_MEMBER,
+     * которые работают в той же organizational unit (objId), что и он.
+     */
+    @Transactional
+    public List<ItemEmployeeDTO> getCommissionMembersByAdmin(UUID currentUserId) {
+        // 1) Текущий пользователь
+        ItemEmployee me = empRepo.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found: " + currentUserId));
+
+        // 2) Берём objId его factWorkplace
+        String objId = me.getFactWorkplace().getObjId();
+
+        // 3) Выбираем всех с ролью COMMISSION_MEMBER и тем же objId
+        List<ItemEmployee> members = empRepo.findByRoleAndFactWorkplace_ObjId(
+                Role.ROLE_COMMISSION_MEMBER, objId);
+
+        // 4) Мапим в DTO
+        return members.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     /**
