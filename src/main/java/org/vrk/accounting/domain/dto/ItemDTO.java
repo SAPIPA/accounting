@@ -66,4 +66,8 @@ public class ItemDTO implements Serializable {
      * ID фактического пользователя (если есть)
      * */
     private UUID currentUserId;
+    /**
+     * Имя файла (backend) и URL (frontend)
+     * */
+    private String photoFilename;
 }

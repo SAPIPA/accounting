@@ -22,7 +22,6 @@ public class ItemService {
     private final ItemEmployeeRepository empRepo;
 
     private Item toEntity(ItemDTO dto) {
-        // либо явно указываем тип билдера
         Item.ItemBuilder builder = Item.builder()
                 .id(dto.getId())
                 .isPersonal(dto.getIsPersonal())
@@ -32,7 +31,9 @@ public class ItemService {
                 .count(dto.getCount())
                 .receiptDate(dto.getReceiptDate())
                 .serviceNumber(dto.getServiceNumber())
-                .status(dto.getStatus());
+                .status(dto.getStatus())
+                // подхватываем имя файла из DTO
+                .photoFilename(dto.getPhotoFilename());
 
         if (dto.getResponsibleUserId() != null) {
             ItemEmployee resp = empRepo.findById(dto.getResponsibleUserId())
@@ -61,31 +62,40 @@ public class ItemService {
                 .receiptDate(entity.getReceiptDate())
                 .serviceNumber(entity.getServiceNumber())
                 .status(entity.getStatus())
-                .responsibleUserId(entity.getResponsible()      != null ? entity.getResponsible().getId()      : null)
-                .currentUserId   (entity.getCurrentItemEmployee() != null ? entity.getCurrentItemEmployee().getId() : null)
+                .responsibleUserId(
+                        entity.getResponsible() != null
+                                ? entity.getResponsible().getId()
+                                : null)
+                .currentUserId(
+                        entity.getCurrentItemEmployee() != null
+                                ? entity.getCurrentItemEmployee().getId()
+                                : null)
+                .photoFilename(entity.getPhotoFilename())
                 .build();
     }
 
-    /**
-     * Получить все вещи, где данный пользователь — фактический владелец.
-     */
+    /** Получить все вещи, где данный пользователь — фактический владелец. */
     @Transactional
     public List<ItemDTO> getItemsByCurrentUser(UUID currentUserId) {
-        List<Item> items = itemRepo.findAllByCurrentItemEmployee_Id(currentUserId);
-        return items.stream()
+        return itemRepo.findAllByCurrentItemEmployee_Id(currentUserId)
+                .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+    /** Для модератора: получить все вещи, за которые он отвечает */
+    @Transactional
     public List<ItemDTO> getItemsByAdmin(UUID responsibleUserId) {
-        if (empRepo.findById(responsibleUserId).orElseThrow().getRole() == Role.ROLE_MODERATOR) {
-            List<Item> items = itemRepo.findAllByResponsible_Id(responsibleUserId);
-            return items.stream()
-                    .map(this::toDto)
-                    .collect(Collectors.toList());
-        } else {
-            throw new RuntimeException();
+        ItemEmployee emp = empRepo.findById(responsibleUserId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "ItemEmployee not found, id=" + responsibleUserId));
+        if (emp.getRole() != Role.ROLE_MODERATOR) {
+            throw new IllegalArgumentException("Access denied");
         }
+        return itemRepo.findAllByResponsible_Id(responsibleUserId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     /** Создать новый Item */
@@ -103,7 +113,7 @@ public class ItemService {
         return toDto(item);
     }
 
-    /** Обновить существующий Item */
+    /** Обновить существующий Item (включая фото) */
     @Transactional
     public ItemDTO updateItem(Long id, ItemDTO dto) {
         Item existing = itemRepo.findById(id)
@@ -117,6 +127,11 @@ public class ItemService {
         existing.setReceiptDate(dto.getReceiptDate());
         existing.setServiceNumber(dto.getServiceNumber());
         existing.setStatus(dto.getStatus());
+
+        // обновляем имя файла, если передано
+        if (dto.getPhotoFilename() != null) {
+            existing.setPhotoFilename(dto.getPhotoFilename());
+        }
 
         if (dto.getResponsibleUserId() != null) {
             ItemEmployee resp = empRepo.findById(dto.getResponsibleUserId())
@@ -135,6 +150,16 @@ public class ItemService {
             existing.setCurrentItemEmployee(null);
         }
 
+        Item updated = itemRepo.save(existing);
+        return toDto(updated);
+    }
+
+    /** Обновить только фото по имени файла */
+    @Transactional
+    public ItemDTO updatePhotoFilename(Long id, String filename) {
+        Item existing = itemRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Item not found, id=" + id));
+        existing.setPhotoFilename(filename);
         Item updated = itemRepo.save(existing);
         return toDto(updated);
     }

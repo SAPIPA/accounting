@@ -69,6 +69,11 @@ public class Item {
     @Column(name = "status")
     private ItemStatus status;
     /**
+     * Имя файла-фото
+     * */
+    @Column(name = "photo_filename")
+    private String photoFilename;
+    /**
      * Ответственное лицо.
      */
     @ManyToOne
