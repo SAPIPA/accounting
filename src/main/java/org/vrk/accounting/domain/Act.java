@@ -38,4 +38,9 @@ public class Act {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "body", columnDefinition = "jsonb")
     private Map<String, Object> body;
+    /**
+     * Путь к файлу в файловой системе.
+     */
+    @Column(name = "file_path", columnDefinition = "text")
+    private String filePath;
 }

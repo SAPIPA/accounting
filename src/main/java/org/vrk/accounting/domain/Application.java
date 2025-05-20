@@ -44,4 +44,9 @@ public class Application {
      */
     @Column(name = "start_date")
     private LocalDateTime sendDate;
+    /**
+     * Путь к файлу в файловой системе.
+     */
+    @Column(name = "file_path", columnDefinition = "text")
+    private String filePath;
 }

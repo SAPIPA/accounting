@@ -38,4 +38,8 @@ public class ApplicationDTO implements Serializable {
      * Дата отправки заявления
      * */
     private LocalDateTime sendDate;
+    /**
+     * Путь к файлу в файловой системе.
+     */
+    private String filePath;
 }

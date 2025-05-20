@@ -34,4 +34,8 @@ public class ActDTO implements Serializable {
      * Содержание акта в виде JSON-структуры.
      * */
     private Map<String, Object> body;
+    /**
+     * Путь к файлу в файловой системе.
+     */
+    private String filePath;
 }
