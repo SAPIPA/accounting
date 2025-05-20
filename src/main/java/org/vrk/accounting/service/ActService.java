@@ -22,6 +22,7 @@ public class ActService {
                 .id(dto.getId())
                 .type(dto.getType())
                 .body(dto.getBody())
+                .filePath(dto.getFilePath())
                 .build();
     }
 
@@ -30,6 +31,7 @@ public class ActService {
                 .id(entity.getId())
                 .type(entity.getType())
                 .body(entity.getBody())
+                .filePath(entity.getFilePath())
                 .build();
     }
 

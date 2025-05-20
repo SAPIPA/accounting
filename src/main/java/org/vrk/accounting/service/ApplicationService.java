@@ -16,12 +16,24 @@ import java.util.stream.Collectors;
 public class ApplicationService {
     private final ApplicationRepository repo;
 
+    // Вспомогательные мапперы DTO ⇄ Entity
+    private Application toEntity(ApplicationDTO dto) {
+        return Application.builder()
+                .id(dto.getId())
+                .type(dto.getType())
+                .body(dto.getBody())
+                .sendDate(dto.getSendDate())
+                .filePath(dto.getFilePath())
+                .build();
+    }
+
     private ApplicationDTO toDto(Application e) {
         return ApplicationDTO.builder()
                 .id(e.getId())
                 .type(e.getType())
                 .body(e.getBody())
                 .sendDate(e.getSendDate())
+                .filePath(e.getFilePath())
                 .build();
     }
 
