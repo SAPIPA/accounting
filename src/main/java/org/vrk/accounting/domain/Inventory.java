@@ -48,7 +48,7 @@ public class Inventory {
     )
     private Set<ItemEmployee> commissionMembers = new HashSet<>();
     /**
-     * Список членов комиссии.
+     * Инвентарная опись.
      */
     @OneToMany(mappedBy = "inventory", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InventoryList> inventoryLists = new ArrayList<>();

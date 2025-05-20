@@ -11,4 +11,7 @@ import java.util.UUID;
 public interface ItemRepository extends JpaRepository<Item, Long> {
     List<Item> findAllByCurrentItemEmployee_Id(UUID currentUserId);
     List<Item> findAllByResponsible_Id(UUID responsibleUserId);
+    /** Все items, у которых responsible.factWorkplace.objId = objId */
+    List<Item> findByResponsible_FactWorkplace_ObjId(String objId);
+
 }

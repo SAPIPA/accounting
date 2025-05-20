@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,4 +40,8 @@ public class InventoryDTO implements Serializable {
      * При создании — передаётся список существующих user_id.
      */
     private Set<UUID> commissionMemberIds;
+    /**
+     * Список позиций описи (itemId + isPresent + note)
+     * */
+    private List<InventoryListDTO> inventoryLists;
 }
