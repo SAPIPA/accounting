@@ -6,8 +6,11 @@
 //
 //@Service
 //public class NotificationConsumer {
-//
-//    @KafkaListener(topics = "notification-topic", groupId = "notification-group")
+//@KafkaListener(
+//        topics = "notification-topic",
+//        containerFactory = "notificationKafkaListenerContainerFactory"
+//)
+//@Transactional
 //    public void consume(Notification notification) {
 //        // обработка уведомления
 //    }

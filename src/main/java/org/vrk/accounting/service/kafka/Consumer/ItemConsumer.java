@@ -2,6 +2,8 @@ package org.vrk.accounting.service.kafka.Consumer;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Item;
@@ -18,7 +20,12 @@ public class ItemConsumer {
     private final ItemRepository itemRepository;
     private final ItemEmployeeRepository itemEmployeeRepository;
 
-    @KafkaListener(topics = "item-topic", groupId = "item-group")
+    private static final Logger log = LoggerFactory.getLogger(EmployeeConsumer.class);
+
+    @KafkaListener(
+            topics = "item-topic",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
     @Transactional
     public void consume(ItemKafka msg) {
         ItemEmployee responsible = itemEmployeeRepository.findBySnils(msg.getSnils());

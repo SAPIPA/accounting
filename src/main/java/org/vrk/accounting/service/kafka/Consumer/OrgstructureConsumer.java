@@ -2,6 +2,8 @@ package org.vrk.accounting.service.kafka.Consumer;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Place;
@@ -14,9 +16,14 @@ public class OrgstructureConsumer {
 
     private final PlaceRepository placeRepository;
 
-    @KafkaListener(topics = "orgstructure-topic", groupId = "orgstructure-group")
+    private static final Logger log = LoggerFactory.getLogger(OrgstructureConsumer.class);
+
+    @KafkaListener(
+            topics = "orgstructures",
+            containerFactory = "orgstructureKafkaListenerContainerFactory"
+    )
     @Transactional
-    public void consume(Orgstructure msg) {
+    public void handleOrgstructure(Orgstructure msg) {
         Place place = Place.builder()
                 .objId(msg.getObjId())
                 .sText(msg.getSText())

@@ -24,11 +24,6 @@ public class ItemEmployee {
      * GUID пользователя.
      */
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(
-            name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator"
-    )
     @Column(name = "guid")
     private UUID id;
     /**
@@ -51,18 +46,18 @@ public class ItemEmployee {
      * Рабочее место пользователя.
      */
     @ManyToOne
-    @JoinColumn(name = "workplace_id", nullable = false)
+    @JoinColumn(name = "workplace_id")
     private Place workplace;
     /**
      * Фактическое рабочее место пользователя.
      */
     @ManyToOne
-    @JoinColumn(name = "fact_workplace_id", nullable = false)
+    @JoinColumn(name = "fact_workplace_id")
     private Place factWorkplace;
     /**
      * Кабинет сотрудника.
      */
-    @Column(name = "office", nullable = false)
+    @Column(name = "office")
     private String office;
     /**
      * Обратная связь с комиссией.
