@@ -10,6 +10,6 @@ import org.vrk.accounting.service.ApplicationService;
 @RequestMapping("/request")
 @RequiredArgsConstructor
 @Tag(name = "Работа с заявлениями")
-public class RequestController {
+public class ApplicationController {
     private final ApplicationService applicationService;
 }

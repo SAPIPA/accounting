@@ -5,18 +5,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.Place;
+import org.vrk.accounting.domain.RZDEmployee;
 import org.vrk.accounting.domain.dto.ItemEmployeeDTO;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.PlaceRepository;
+import org.vrk.accounting.repository.RZDEmployeeRepository;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
+
     private final ItemEmployeeRepository empRepo;
+    private final RZDEmployeeRepository rzdRepo;
     private final PlaceRepository placeRepo;
 
     private ItemEmployee toEntity(ItemEmployeeDTO dto) {
@@ -66,6 +71,48 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "ItemEmployee not found, id=" + id));
         return toDto(e);
+    }
+
+    /**
+     * Получить текущего пользователя + всех его коллег (same orgeh).
+     */
+    @Transactional
+    public List<ItemEmployeeDTO> getColleaguesWithSelf(UUID currentUserId) {
+        // 1) Текущий пользователь
+        ItemEmployee me = empRepo.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found: " + currentUserId));
+        ItemEmployeeDTO meDto = toDto(me);
+
+        // 2) Вытаскиваем orgeh из вспомогательной таблицы
+        String snils = me.getSnils();
+        RZDEmployee meta = rzdRepo.findById(snils)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Metadata for SNILS not found: " + snils));
+        String orgeh = meta.getOrgeh();
+
+        // 3) Находим всех RZDEmployee с тем же orgeh
+        List<RZDEmployee> peersMeta = rzdRepo.findByOrgeh(orgeh);
+        Set<String> peerSnils = peersMeta.stream()
+                .map(RZDEmployee::getSnils)
+                .collect(Collectors.toSet());
+
+        // 4) Достаём из ItemEmployee по snils
+        List<ItemEmployee> peers = empRepo.findBySnilsIn(peerSnils);
+
+        // 5) Мапим в DTO
+        List<ItemEmployeeDTO> dtos = peers.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+
+        // 6) Убедимся, что текущий пользователь есть в списке
+        boolean containsMe = dtos.stream()
+                .anyMatch(d -> d.getId().equals(currentUserId));
+        if (!containsMe) {
+            dtos.add(meDto);
+        }
+
+        return dtos;
     }
 
     /** Список всех пользователей */

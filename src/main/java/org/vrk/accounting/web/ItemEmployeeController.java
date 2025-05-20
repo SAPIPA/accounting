@@ -7,6 +7,7 @@ import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.service.EmployeeService;
 import org.vrk.accounting.util.secure.RoleGuard;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -16,7 +17,9 @@ public class ItemEmployeeController {
 
     private final EmployeeService service;
 
-    /** Просмотр своего профиля — любой аутентифицированный (роль не проверяем) */
+    /**
+     * Просмотр своего профиля — любой аутентифицированный (роль не проверяем)
+     * */
     @GetMapping("/me")
     public ItemEmployeeDTO getMe(
             @RequestHeader("X-User-Id") UUID userId
@@ -24,7 +27,22 @@ public class ItemEmployeeController {
         return service.getById(userId);
     }
 
-    /** Обновление пользователя — только ROLE_MODERATOR */
+    /**
+     * Получить текущего пользователя + всех коллег по orgeh.
+     * Доступно только ROLE_MODERATOR.
+     */
+    @GetMapping("/colleagues")
+    public List<ItemEmployeeDTO> getColleagues(
+            @RequestHeader("X-User-Id")   UUID currentUserId,
+            @RequestHeader("X-User-Role") Role role
+    ) {
+        RoleGuard.require(role, Role.ROLE_MODERATOR);
+        return service.getColleaguesWithSelf(currentUserId);
+    }
+
+    /**
+     * Обновление пользователя — только ROLE_MODERATOR
+     * */
     @PutMapping("/{id}")
     public ItemEmployeeDTO updateUser(
             @PathVariable UUID id,
