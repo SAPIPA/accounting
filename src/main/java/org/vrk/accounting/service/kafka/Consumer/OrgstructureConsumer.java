@@ -19,7 +19,7 @@ public class OrgstructureConsumer {
     private static final Logger log = LoggerFactory.getLogger(OrgstructureConsumer.class);
 
     @KafkaListener(
-            topics = "orgstructures",
+            topics = "orgstructure-topic",
             containerFactory = "orgstructureKafkaListenerContainerFactory"
     )
     @Transactional

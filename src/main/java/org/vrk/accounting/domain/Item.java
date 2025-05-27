@@ -28,7 +28,7 @@ public class Item {
     @Column(name = "id")
     private Long id;
     /**
-     * Является ли сркдство личным.
+     * Является ли средство личным.
      */
     @Column(name = "is_personal", nullable = false)
     private Boolean isPersonal;

@@ -24,7 +24,7 @@ public class ItemConsumer {
 
     @KafkaListener(
             topics = "item-topic",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "itemKafkaListenerContainerFactory"
     )
     @Transactional
     public void consume(ItemKafka msg) {
