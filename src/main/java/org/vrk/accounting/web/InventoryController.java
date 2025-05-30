@@ -1,5 +1,10 @@
 package org.vrk.accounting.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,9 +18,17 @@ import org.vrk.accounting.util.secure.RoleGuard;
 
 import java.util.UUID;
 
+@SecurityScheme(
+        name = "bearerAuth",                          // идентификатор схемы
+        type = SecuritySchemeType.HTTP,               // HTTP схема
+        scheme = "bearer",                            // Bearer-токен
+        bearerFormat = "JWT",                         // формат токена
+        in = SecuritySchemeIn.HEADER                  // передаётся в заголовке Authorization
+)
 @RestController
 @RequestMapping("/api/inventories")
 @RequiredArgsConstructor
+@Tag(name = "Работы по инвентаризации")
 public class InventoryController {
     private final InventoryService invService;
 
@@ -33,7 +46,11 @@ public class InventoryController {
 //    }
 
     @GetMapping("/init")
-    @PreAuthorize("hasRole('COMMISSION_MEMBER')")
+    @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
+    @Operation(
+            summary = "Начать инвентаризацию",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public InventoryDTO init(@AuthenticationPrincipal Jwt jwt) {
         // из sub (или любого другого claim) получаем UUID пользователя
         UUID userId = UUID.fromString(jwt.getSubject());

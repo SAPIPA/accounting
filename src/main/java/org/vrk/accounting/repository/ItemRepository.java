@@ -14,4 +14,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     /** Все items, у которых responsible.factWorkplace.objId = objId */
     List<Item> findByResponsible_FactWorkplace_ObjId(String objId);
 
+    List<Item> findByNameContainingIgnoreCaseOrInventoryNumberContainingIgnoreCase(
+            String namePart,
+            String inventoryNumberPart
+    );
 }

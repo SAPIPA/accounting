@@ -5,9 +5,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableMethodSecurity  // активирует @PreAuthorize
@@ -19,10 +24,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // публичные эндпоинты
-                        .requestMatchers("/**").permitAll()
-//                        .requestMatchers("/swagger-ui/**").permitAll()
-                        // всё остальное — только для аутентифицированных
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()   // публично
                         .anyRequest().authenticated()
+                        // всё остальное — только для аутентифицированных
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
@@ -32,15 +36,35 @@ public class SecurityConfig {
         return http.build();
     }
 
-    private JwtAuthenticationConverter jwtAuthenticationConverter() {
-        // converter для ролей из claim realm_access.roles → GrantedAuthority("ROLE_<имя>")
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter =
-                new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 
-        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return jwtConverter;
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            List<GrantedAuthority> auths = new ArrayList<>();
+
+            // 1) Realm-роли
+            Map<String,Object> realm = jwt.getClaim("realm_access");
+            if (realm != null && realm.containsKey("roles")) {
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) realm.get("roles");
+                roles.forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r)));
+            }
+
+            // 2) Client-роли (если нужны)
+            Map<String,Object> resource = jwt.getClaim("resource_access");
+            if (resource != null && resource.containsKey("item-service")) {
+                @SuppressWarnings("unchecked")
+                Map<String,Object> client = (Map<String,Object>) resource.get("item-service");
+                @SuppressWarnings("unchecked")
+                List<String> clientRoles = (List<String>) client.get("roles");
+                clientRoles.forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r)));
+            }
+
+            return auths;
+        });
+
+        return converter;
     }
+
 }

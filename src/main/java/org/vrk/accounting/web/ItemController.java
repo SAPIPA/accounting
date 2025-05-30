@@ -1,8 +1,13 @@
 package org.vrk.accounting.web;
 
 
-import org.springframework.core.io.Resource;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +25,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor
+@Tag(name = "Работа с материальными средствами")
 public class ItemController {
     private final ItemService itemService;
     private final FileStorage fileStorage;
@@ -54,6 +60,20 @@ public class ItemController {
                 .body(file);
     }
 
+    /** Простой поиск без пагинации */
+    @GetMapping("/search")
+    public ResponseEntity<List<ItemDTO>> searchItems(
+            @RequestHeader("X-User-Role") Role role,
+            @RequestParam("q") String query
+    ) {
+        RoleGuard.require(role, Role.ROLE_USER, Role.ROLE_MODERATOR);
+        List<ItemDTO> result = itemService.searchItems(query);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Пользователь получает свои материальные средства
+     * */
     @GetMapping("/my")
     public List<ItemDTO> getMyItems(
             @RequestHeader("X-User-Id") UUID userId,
@@ -64,6 +84,7 @@ public class ItemController {
     }
 
     @GetMapping("/all")
+    @Operation(summary = "Получить все вещи МОЛу на балансе")
     public List<ItemDTO> getAllItems(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") Role role

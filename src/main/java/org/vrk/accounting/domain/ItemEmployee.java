@@ -2,7 +2,6 @@ package org.vrk.accounting.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 import org.vrk.accounting.domain.enums.Role;
 
 import java.util.HashSet;

@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ActService {
-
     private final ActRepository repo;
 
     // Вспомогательные мапперы DTO ⇄ Entity
@@ -46,7 +45,7 @@ public class ActService {
     @Transactional
     public ActDTO getActById(Long id) {
         Act act = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Act not found, id=" + id));
+                .orElseThrow(() -> new IllegalArgumentException("Act not found: id=" + id));
         return toDto(act);
     }
 
@@ -63,10 +62,18 @@ public class ActService {
     @Transactional
     public ActDTO updateAct(Long id, ActDTO dto) {
         Act existing = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Act not found, id=" + id));
-        existing.setType(dto.getType());
-        existing.setBody(dto.getBody());
-        // не меняем ID
+                .orElseThrow(() -> new IllegalArgumentException("Act not found: id=" + id));
+
+        if (dto.getType() != null) {
+            existing.setType(dto.getType());
+        }
+        if (dto.getBody() != null) {
+            existing.setBody(dto.getBody());
+        }
+        if (dto.getFilePath() != null) {
+            existing.setFilePath(dto.getFilePath());
+        }
+
         Act updated = repo.save(existing);
         return toDto(updated);
     }
@@ -75,7 +82,7 @@ public class ActService {
     @Transactional
     public void deleteAct(Long id) {
         if (!repo.existsById(id)) {
-            throw new IllegalArgumentException("Act not found, id=" + id);
+            throw new IllegalArgumentException("Act not found: id=" + id);
         }
         repo.deleteById(id);
     }

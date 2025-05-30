@@ -1,4 +1,5 @@
 package org.vrk.accounting.domain.enums;
+
 /**
  * Статус материального средства
  */

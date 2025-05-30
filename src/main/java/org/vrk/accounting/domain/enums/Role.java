@@ -1,4 +1,5 @@
 package org.vrk.accounting.domain.enums;
+
 /**
  * Роль пользователя в системе.
  */

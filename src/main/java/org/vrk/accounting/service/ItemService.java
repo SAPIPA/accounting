@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Item;
 import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.dto.ItemDTO;
-import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
 
@@ -74,6 +73,18 @@ public class ItemService {
                 .build();
     }
 
+    /**
+     * Поиск всех Item, где name или inventoryNumber содержит подстроку `query`
+     */
+    @Transactional
+    public List<ItemDTO> searchItems(String query) {
+        List<Item> list = itemRepo
+                .findByNameContainingIgnoreCaseOrInventoryNumberContainingIgnoreCase(query, query);
+        return list.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
     /** Получить все вещи, где данный пользователь — фактический владелец. */
     @Transactional
     public List<ItemDTO> getItemsByCurrentUser(UUID currentUserId) {
@@ -89,9 +100,9 @@ public class ItemService {
         ItemEmployee emp = empRepo.findById(responsibleUserId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "ItemEmployee not found, id=" + responsibleUserId));
-        if (emp.getRole() != Role.ROLE_MODERATOR) {
-            throw new IllegalArgumentException("Access denied");
-        }
+//        if (emp.getRole() != Role.ROLE_MODERATOR) {
+//            throw new IllegalArgumentException("Access denied");
+//        }
         return itemRepo.findAllByResponsible_Id(responsibleUserId)
                 .stream()
                 .map(this::toDto)

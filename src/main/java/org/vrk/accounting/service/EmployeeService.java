@@ -58,6 +58,41 @@ public class EmployeeService {
                 .build();
     }
 
+    /**
+     * Поиск сотрудников по ФИО, но только тех, у кого workplace или factWorkplace
+     * совпадает с текущим пользователем.
+     *
+     * @param fullName часть или весь текст ФИО
+     * @param userId   UUID текущего пользователя из заголовка
+     */
+    public List<ItemEmployeeDTO> findByFullName(String fullName, UUID userId) {
+        // 1. Загружаем текущего пользователя
+        ItemEmployee currentUser = empRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found, id=" + userId));
+
+        Long currentWpId  = currentUser.getWorkplace().getId();
+        Long currentFwpId = currentUser.getFactWorkplace().getId();
+
+        // 2. Получаем исходный список (все или отфильтрованные по ФИО)
+        List<ItemEmployee> list;
+        if (fullName == null || fullName.isBlank()) {
+            list = empRepo.findAll();
+        } else {
+            list = empRepo.findByFullNameContainingIgnoreCase(fullName.trim());
+        }
+
+        // 3. Отбираем только тех, у кого совпадает workplace или factWorkplace
+        return list.stream()
+                .filter(e -> {
+                    Long wpId  = e.getWorkplace().getId();
+                    Long fwpId = e.getFactWorkplace().getId();
+                    return currentWpId.equals(wpId) || currentFwpId.equals(fwpId);
+                })
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
     /** Создать нового пользователя */
     @Transactional
     public ItemEmployeeDTO create(ItemEmployeeDTO dto) {

@@ -52,6 +52,9 @@ public class Item {
      */
     @Column(name = "count", nullable = false)
     private Integer count;
+
+    @Column(name = "cost")
+    private String cost;
     /**
      * Дата поступления.
      */
