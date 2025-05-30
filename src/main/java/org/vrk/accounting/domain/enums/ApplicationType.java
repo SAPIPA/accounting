@@ -5,10 +5,6 @@ package org.vrk.accounting.domain.enums;
  */
 public enum ApplicationType {
     /**
-     * Заявка на обслуживание.
-     */
-    SERVICE,
-    /**
      * Заявка на списание.
      */
     WRITE_OFF,

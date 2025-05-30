@@ -2,9 +2,6 @@ package org.vrk.accounting.web;
 
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -60,7 +57,7 @@ public class ItemController {
                 .body(file);
     }
 
-    /** Простой поиск без пагинации */
+    /** Простой поиск */
     @GetMapping("/search")
     public ResponseEntity<List<ItemDTO>> searchItems(
             @RequestHeader("X-User-Role") Role role,

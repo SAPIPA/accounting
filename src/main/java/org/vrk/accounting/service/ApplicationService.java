@@ -6,15 +6,19 @@ import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Application;
 import org.vrk.accounting.domain.dto.ApplicationDTO;
 import org.vrk.accounting.repository.ApplicationRepository;
+import org.vrk.accounting.util.file.FileUtil;
 
-import java.time.LocalDateTime;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
+
     private final ApplicationRepository repo;
+    private final FileUtil fileUtil;
 
     // Вспомогательные мапперы DTO ⇄ Entity
     private Application toEntity(ApplicationDTO dto) {
@@ -55,14 +59,9 @@ public class ApplicationService {
 
     /** Создать новое заявление */
     @Transactional
-    public ApplicationDTO create(ApplicationDTO dto) {
-        Application e = Application.builder()
-                .type(dto.getType())
-                .body(dto.getBody())
-                .sendDate(LocalDateTime.now())
-                .build();
-        Application saved = repo.save(e);
-        return toDto(saved);
+    public File create(ApplicationDTO dto) throws IOException {
+        repo.save(toEntity(dto));
+        return fileUtil.generateApplication(dto);
     }
 
     /** Обновить существующее заявление (type и body) */

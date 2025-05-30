@@ -5,9 +5,9 @@ package org.vrk.accounting.domain.enums;
  */
 public enum ActType {
     /**
-     * Акт о модернизации.
+     * Акт технического состояния.
      */
-    MODERNIZATION,
+    SERVICE,
     /**
      * Акт списания ФИУ10.
      */

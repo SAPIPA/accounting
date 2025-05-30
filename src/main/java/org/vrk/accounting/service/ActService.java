@@ -6,14 +6,19 @@ import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Act;
 import org.vrk.accounting.domain.dto.ActDTO;
 import org.vrk.accounting.repository.ActRepository;
+import org.vrk.accounting.util.file.FileUtil;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ActService {
+
     private final ActRepository repo;
+    private final FileUtil fileUtil;
 
     // Вспомогательные мапперы DTO ⇄ Entity
     private Act toEntity(ActDTO dto) {
@@ -36,9 +41,9 @@ public class ActService {
 
     /** Создать новый акт */
     @Transactional
-    public ActDTO createAct(ActDTO dto) {
-        Act saved = repo.save(toEntity(dto));
-        return toDto(saved);
+    public File createAct(ActDTO dto) throws IOException {
+        repo.save(toEntity(dto));
+        return fileUtil.generateAct(dto);
     }
 
     /** Получить акт по ID */

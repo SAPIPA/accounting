@@ -4,16 +4,13 @@ import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.style.BorderStyle;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
-import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.xwpf.usermodel.XWPFTable.XWPFBorderType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import org.vrk.accounting.domain.Act;
-import org.vrk.accounting.domain.Application;
+import org.vrk.accounting.domain.dto.ActDTO;
+import org.vrk.accounting.domain.dto.ApplicationDTO;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,22 +26,41 @@ import java.util.Locale;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class FileUtil {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    // Если шаблоны лежат в resources/templates/
+    @Value("classpath:templates/FIU10_Template.docx")
+    private Resource FIU10Template;
     @Value("classpath:templates/FMU73_Template.docx")
-    private Resource template;
+    private Resource FMU73Template;
+    @Value("classpath:templates/SERVICE_Template.docx")
+    private Resource ServiceTemplate;
+    @Value("classpath:templates/TRANSFER_Template.docx")
+    private Resource TransferTemplate;
+    @Value("classpath:templates/WRITE_OFF_Template.docx")
+    private Resource WriteOffTemplate;
+    @Value("classpath:templates/ACQUISITION_Template.docx")
+    private Resource AcquisitionTemplate;
+    @Value("classpath:templates/ADD_Template.docx")
+    private Resource AddTemplate;
+    @Value("classpath:templates/InventoryList_Template.docx")
+    private Resource InventoryListTemplate;
 
     private static final DateTimeFormatter RUSSIAN_FORMATTER = DateTimeFormatter.ofPattern("«d» MMMM yyyy 'г.'", new Locale("ru"));
+
+    private File generateFIU10Act(ActDTO act) {
+        return new File("/");
+    }
+
     /**
      * Генерирует акт по модели Act.
      * @param act модель с полями и списками
      * @return готовый .docx в байтах
      */
-    public File generateFMU73Act(Act act) throws IOException {
+    private File generateFMU73Act(ActDTO act) throws IOException {
 
         // 1) Собираем простые поля
         Map<String, Object> model = new HashMap<>();
@@ -73,7 +89,7 @@ public class FileUtil {
         File outFile = uploadPath.resolve(filename).toFile();
 
         // 8) Рендерим
-        try (InputStream is = template.getInputStream();
+        try (InputStream is = FMU73Template.getInputStream();
              XWPFTemplate tpl = XWPFTemplate.compile(is, config).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {
             tpl.write(fos);
@@ -82,118 +98,45 @@ public class FileUtil {
         return outFile;
     }
 
-    public File generateModernizationAct(Act act) {
+    private File generateServiceAct(ActDTO act) {
         return new File("/");
     }
 
-    public File generateFIU10Act(Act act) {
+    private File generateTransferAct(ActDTO act) {
         return new File("/");
     }
 
-    public File generateTransferAct(Act act) {
-        return new File("/");
-    }
-
-    public File generateAct(Act act) throws IOException {
-
+    public File generateAct(ActDTO act) throws IOException {
         switch (act.getType()) {
-            case MODERNIZATION -> generateModernizationAct(act);
             case FIU10 -> generateFIU10Act(act);
             case FMU73 -> generateFMU73Act(act);
+            case SERVICE -> generateServiceAct(act);
             case TRANSFER -> generateTransferAct(act);
+            default -> throw new IllegalArgumentException("Unsupported type: " + act.getType());
         }
-        // Убедимся, что директория существует
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-        Files.createDirectories(uploadPath);
-
-        // Имя файла
-        String filename = "act_" + act.getId() + ".docx";
-        Path filePath = uploadPath.resolve(filename);
-
-        // Генерация документа
-        try (XWPFDocument document = new XWPFDocument()) {
-            // заголовок
-            XWPFParagraph title = document.createParagraph();
-            title.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun titleRun = title.createRun();
-//            titleRun.setText(act.getName());
-            titleRun.setFontSize(16);
-            titleRun.setFontFamily("Times New Roman");
-            titleRun.setBold(true);
-
-            // содержание
-            XWPFParagraph content = document.createParagraph();
-            content.setAlignment(ParagraphAlignment.BOTH);
-            XWPFRun contentRun = content.createRun();
-//            contentRun.setText(act.getDescription());
-            contentRun.setFontSize(14);
-            contentRun.setFontFamily("Times New Roman");
-
-            // Запись в файл
-            try (FileOutputStream out = new FileOutputStream(filePath.toFile())) {
-                document.write(out);
-            }
-        }
-
-        return filePath.toFile();
+        return null;
     }
 
-    public File generateServiceApplication(Application application) {
+
+    private File generateWriteOffApplication(ApplicationDTO application) {
         return new File("/");
     }
 
-    public File generateWriteOffApplication(Application application) {
+    private File generateAcquisitionApplication(ApplicationDTO application) {
         return new File("/");
     }
 
-    public File generateAcquisitionApplication(Application application) {
+    private File generateAddApplication(ApplicationDTO application) {
         return new File("/");
     }
 
-    public File generateAddApplication(Application application) {
-        return new File("/");
-    }
-
-    public File generateApplication(Application application) throws IOException {
+    public File generateApplication(ApplicationDTO application) throws IOException {
         switch (application.getType()) {
             case ADD -> generateAddApplication(application);
-            case SERVICE -> generateServiceApplication(application);
             case WRITE_OFF -> generateWriteOffApplication(application);
             case ACQUISITION -> generateAcquisitionApplication(application);
+            default -> throw new IllegalArgumentException("Unsupported type: " + application.getType());
         }
-        // Убедимся, что директория существует
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-        Files.createDirectories(uploadPath);
-
-        // Имя файла
-//        String filename = "act_" + act.getId() + ".docx";
-        Path filePath = uploadPath.resolve("filename");
-
-        // Генерация документа
-        try (XWPFDocument document = new XWPFDocument()) {
-            // заголовок
-            XWPFParagraph title = document.createParagraph();
-            title.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun titleRun = title.createRun();
-//            titleRun.setText(act.getName());
-            titleRun.setFontSize(16);
-            titleRun.setFontFamily("Times New Roman");
-            titleRun.setBold(true);
-
-            // содержание
-            XWPFParagraph content = document.createParagraph();
-            content.setAlignment(ParagraphAlignment.BOTH);
-            XWPFRun contentRun = content.createRun();
-//            contentRun.setText(act.getDescription());
-            contentRun.setFontSize(14);
-            contentRun.setFontFamily("Times New Roman");
-
-            // Запись в файл
-            try (FileOutputStream out = new FileOutputStream(filePath.toFile())) {
-                document.write(out);
-            }
-        }
-
-        return filePath.toFile();
+        return null;
     }
 }

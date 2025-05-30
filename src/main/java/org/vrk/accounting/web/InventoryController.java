@@ -36,15 +36,6 @@ public class InventoryController {
      * Подготовка процесса инвентаризации.
      * Возвращает возможных commission-members и список items.
      */
-//    @GetMapping("/init")
-//    public InventoryDTO init(
-//            @RequestHeader("X-User-Id") UUID userId,
-//            @RequestHeader("X-User-Role") Role role
-//    ) {
-//        RoleGuard.require(role, Role.ROLE_COMMISSION_MEMBER);
-//        return invService.prepareInit(userId);
-//    }
-
     @GetMapping("/init")
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
