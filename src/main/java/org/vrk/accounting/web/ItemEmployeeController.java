@@ -1,8 +1,14 @@
 package org.vrk.accounting.web;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.vrk.accounting.domain.dto.ItemEmployeeDTO;
 import org.vrk.accounting.domain.enums.Role;
@@ -12,6 +18,13 @@ import org.vrk.accounting.util.secure.RoleGuard;
 import java.util.List;
 import java.util.UUID;
 
+@SecurityScheme(
+        name = "bearerAuth",                          // идентификатор схемы
+        type = SecuritySchemeType.HTTP,               // HTTP схема
+        scheme = "bearer",                            // Bearer-токен
+        bearerFormat = "JWT",                         // формат токена
+        in = SecuritySchemeIn.HEADER                  // передаётся в заголовке Authorization
+)
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
@@ -24,16 +37,16 @@ public class ItemEmployeeController {
      * Поиск сотрудников по ФИО, ограниченный рабочим местом текущего пользователя.
      *
      * @param fullName часть или полный текст ФИО
-     * @param userId   UUID текущего пользователя из заголовка
      */
     @GetMapping("/search")
     @Operation(summary = "Поиск сотрудников по ФИО",
             description = "Возвращает список сотрудников с совпадающим ФИО и тем же " +
-                    "workplace или factWorkplace, что и у текущего пользователя.")
+                    "workplace или factWorkplace, что и у текущего пользователя.",
+            security = @SecurityRequirement(name = "bearerAuth"))
     public List<ItemEmployeeDTO> searchByFullName(
-            @RequestParam(required = false) String fullName,
-            @RequestHeader("X-User-Id") UUID userId
-    ) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String fullName) {
+        UUID userId = UUID.fromString(jwt.getSubject());
         return service.findByFullName(fullName, userId);
     }
 
@@ -45,9 +58,8 @@ public class ItemEmployeeController {
             summary = "Пользователь по id",
             description = "Позволяет получить пользователя по id"
     )
-    public ItemEmployeeDTO getMe(
-            @RequestHeader("X-User-Id") UUID userId
-    ) {
+    public ItemEmployeeDTO getMe(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
         return service.getById(userId);
     }
 
@@ -56,28 +68,10 @@ public class ItemEmployeeController {
      * Доступно только ROLE_MODERATOR.
      */
     @GetMapping("/colleagues")
-    public List<ItemEmployeeDTO> getColleagues(
-            @RequestHeader("X-User-Id")   UUID currentUserId,
-            @RequestHeader("X-User-Role") Role role
-    ) {
-        RoleGuard.require(role, Role.ROLE_MODERATOR);
-        return service.getColleaguesWithSelf(currentUserId);
+    public List<ItemEmployeeDTO> getColleagues(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return service.getColleaguesWithSelf(userId);
     }
-
-//    /**
-//     * Админ получает всех commission-members, чей factWorkplace.objId совпадает с его.
-//     * Заголовки:
-//     *   X-User-Id   – UUID администратора
-//     *   X-User-Role – ROLE_MODERATOR
-//     */
-//    @GetMapping("/commission-members")
-//    public List<ItemEmployeeDTO> getCommissionMembers(
-//            @RequestHeader("X-User-Id")   UUID userId,
-//            @RequestHeader("X-User-Role") Role role
-//    ) {
-//        RoleGuard.require(role, Role.ROLE_MODERATOR);
-//        return service.getCommissionMembersByAdmin(userId);
-//    }
 
     /**
      * Обновление пользователя — только ROLE_MODERATOR
@@ -85,10 +79,7 @@ public class ItemEmployeeController {
     @PutMapping("/{id}")
     public ItemEmployeeDTO updateUser(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Role") Role role,
-            @RequestBody ItemEmployeeDTO dto
-    ) {
-        RoleGuard.require(role, Role.ROLE_MODERATOR);
+            @RequestBody ItemEmployeeDTO dto) {
         return service.update(id, dto);
     }
 

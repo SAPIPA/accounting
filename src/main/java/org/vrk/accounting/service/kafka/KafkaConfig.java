@@ -11,10 +11,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-import org.vrk.accounting.domain.kafka.Employee;
-import org.vrk.accounting.domain.kafka.ItemKafka;
-import org.vrk.accounting.domain.kafka.Notification;
-import org.vrk.accounting.domain.kafka.Orgstructure;
+import org.vrk.accounting.domain.kafka.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,24 +22,56 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    // ProducerFactory для Notification
+    // === ProducerFactory и KafkaTemplate для Notification ===
     @Bean
     public ProducerFactory<String, Notification> notificationProducerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        // опционально: убрать заголовки типов
+        // отключаем добавление заголовков типов
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
         return new DefaultKafkaProducerFactory<>(props);
     }
 
     @Bean
-    public KafkaTemplate<String, Notification> kafkaTemplate() {
+    public KafkaTemplate<String, Notification> notificationKafkaTemplate() {
         return new KafkaTemplate<>(notificationProducerFactory());
     }
 
-    // ConsumerFactory для Employee
+    // === ProducerFactory и KafkaTemplate для Act ===
+    @Bean
+    public ProducerFactory<String, Act> actProducerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Act> actKafkaTemplate() {
+        return new KafkaTemplate<>(actProducerFactory());
+    }
+
+    // === ProducerFactory и KafkaTemplate для Application ===
+    @Bean
+    public ProducerFactory<String, Application> applicationProducerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Application> applicationKafkaTemplate() {
+        return new KafkaTemplate<>(applicationProducerFactory());
+    }
+
+    // === ConsumerFactory и Listener для Employee ===
     @Bean
     public ConsumerFactory<String, Employee> employeeConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -50,7 +79,6 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "employee-consumer-group");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        // Доверяем пакетам с вашими классами
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.example.package");
         return new DefaultKafkaConsumerFactory<>(
                 props,
@@ -67,7 +95,7 @@ public class KafkaConfig {
         return factory;
     }
 
-    // === Новый ConsumerFactory для Orgstructure ===
+    // === ConsumerFactory и Listener для Orgstructure ===
     @Bean
     public ConsumerFactory<String, Orgstructure> orgstructureConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -91,6 +119,7 @@ public class KafkaConfig {
         return factory;
     }
 
+    // === ConsumerFactory и Listener для ItemKafka ===
     @Bean
     public ConsumerFactory<String, ItemKafka> itemKafkaConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -113,4 +142,5 @@ public class KafkaConfig {
         factory.setConsumerFactory(itemKafkaConsumerFactory());
         return factory;
     }
+
 }

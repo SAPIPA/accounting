@@ -18,6 +18,7 @@ public class ApplicationProducer {
     private final KafkaTemplate<String, Application> kafkaTemplate;
     private static final String TOPIC = "applications";
 
+    // TODO заявление ушло на согласование
     public void sendApplication(Application application) {
         String key = String.valueOf(application.getId());
 

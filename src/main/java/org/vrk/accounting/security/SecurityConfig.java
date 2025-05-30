@@ -24,8 +24,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // публичные эндпоинты
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()   // публично
-                        .anyRequest().authenticated()
+//                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()   // публично
+                        .requestMatchers("/**").permitAll()
+//                        .anyRequest().authenticated()
                         // всё остальное — только для аутентифицированных
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

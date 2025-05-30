@@ -60,6 +60,7 @@ public class ApplicationService {
     /** Создать новое заявление */
     @Transactional
     public File create(ApplicationDTO dto) throws IOException {
+        // TODO: отправить в KAFKA
         repo.save(toEntity(dto));
         return fileUtil.generateApplication(dto);
     }

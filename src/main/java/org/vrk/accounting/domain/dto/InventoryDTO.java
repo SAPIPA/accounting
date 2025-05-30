@@ -21,27 +21,36 @@ import java.util.UUID;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InventoryDTO implements Serializable {
-    @Serial
     private static final long serialVersionUID = 1L;
+
     /**
-     * ИД инвентаризации. При создании оставить null
-     * */
+     * ID инвентаризации (null при создании).
+     */
     private Long id;
+
     /**
-     * Дата начала инвентаризации
-     * */
+     * Дата начала инвентаризации (LocalDateTime), отправляем в формате ISO (yyyy-MM-ddTHH:mm).
+     */
     private LocalDateTime startDate;
+
     /**
-     * Дата окончания инвентаризации
-     * */
+     * Дата окончания (проставится, когда все записи описи будут сохранены).
+     */
     private LocalDateTime endDate;
+
     /**
-     * Список ID сотрудников-членов комиссии.
-     * При создании — передаётся список существующих user_id.
+     * ID сотрудника-МОЛа, чей склад/имущество проверяем.
+     */
+    private UUID responsibleEmployeeId;
+
+    /**
+     * Список ID сотрудников (UUID), которые входят в состав комиссии.
      */
     private Set<UUID> commissionMemberIds;
+
     /**
-     * Список позиций описи (itemId + isPresent + note)
-     * */
+     * Список строк описи (если перечень уже заполнен).
+     * При создании новой инвентаризации обычно null или пустой.
+     */
     private List<InventoryListDTO> inventoryLists;
 }

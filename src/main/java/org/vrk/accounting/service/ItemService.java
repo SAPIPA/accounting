@@ -97,12 +97,6 @@ public class ItemService {
     /** Для модератора: получить все вещи, за которые он отвечает */
     @Transactional
     public List<ItemDTO> getItemsByAdmin(UUID responsibleUserId) {
-        ItemEmployee emp = empRepo.findById(responsibleUserId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "ItemEmployee not found, id=" + responsibleUserId));
-//        if (emp.getRole() != Role.ROLE_MODERATOR) {
-//            throw new IllegalArgumentException("Access denied");
-//        }
         return itemRepo.findAllByResponsible_Id(responsibleUserId)
                 .stream()
                 .map(this::toDto)
