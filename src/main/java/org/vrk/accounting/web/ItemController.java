@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -37,6 +39,7 @@ import java.util.UUID;
 @Tag(name = "Работа с материальными средствами")
 public class ItemController {
 
+    private static final Logger log = LoggerFactory.getLogger(ItemController.class);
     private final ItemService itemService;
     private final FileStorage fileStorage;
 
@@ -81,7 +84,7 @@ public class ItemController {
     )
     @GetMapping("/my")
     public List<ItemDTO> getMyItems(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
         return itemService.getItemsByCurrentUser(userId);
     }
 
@@ -98,9 +101,13 @@ public class ItemController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Получить все вещи МОЛу на балансе")
+    @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
+    @Operation(
+            summary = "Получить все вещи МОЛу на балансе",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public List<ItemDTO> getAllItems(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
         return itemService.getItemsByAdmin(userId);
     }
 

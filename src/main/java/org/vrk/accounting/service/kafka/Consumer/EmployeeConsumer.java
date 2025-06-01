@@ -34,7 +34,6 @@ public class EmployeeConsumer {
     )
     @Transactional
     public void handleEmployee(Employee msg) {
-        log.info("Получен объект Employee: {}", msg);
         RZDEmployee meta = RZDEmployee.builder()
                 .snils(msg.getSnils())
                 .sex(msg.getSex())
