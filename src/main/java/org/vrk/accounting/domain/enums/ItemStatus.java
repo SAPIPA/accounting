@@ -5,13 +5,13 @@ package org.vrk.accounting.domain.enums;
  */
 public enum ItemStatus {
     /**
+     * На балансе
+     */
+    ON_BALANCE,
+    /**
      * В использовании
      */
     IN_USE,
-    /**
-     * На обслуживании
-     */
-    UNDER_SERVICE,
     /**
      * Списано
      */

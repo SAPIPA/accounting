@@ -38,8 +38,9 @@ public class ItemConsumer {
                         .isPersonal(false)
                         .measuringUnit(msg.getMeasuringUnit())
                         .count(1)
+                        .cost(msg.getCost())
                         .receiptDate(msg.getReceiptDate())
-                        .status(ItemStatus.IN_USE)
+                        .status(ItemStatus.ON_BALANCE)
                         .responsible(responsible)
                         .build();
                 itemRepository.save(one);
@@ -52,8 +53,9 @@ public class ItemConsumer {
                     .isPersonal(false)
                     .measuringUnit(msg.getMeasuringUnit())
                     .count(msg.getCount())
+                    .cost(msg.getCost())
                     .receiptDate(msg.getReceiptDate())
-                    .status(ItemStatus.IN_USE)
+                    .status(ItemStatus.ON_BALANCE)
                     .responsible(responsible)
                     .build();
             itemRepository.save(bulk);

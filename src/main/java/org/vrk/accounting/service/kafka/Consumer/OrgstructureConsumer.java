@@ -24,6 +24,7 @@ public class OrgstructureConsumer {
     )
     @Transactional
     public void handleOrgstructure(Orgstructure msg) {
+        log.info("Десериализованный Orgstructure: objId={}, sText='{}'", msg.getObjId(), msg.getSText());
         Place place = Place.builder()
                 .objId(msg.getObjId())
                 .sText(msg.getSText())

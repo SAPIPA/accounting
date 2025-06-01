@@ -2,6 +2,7 @@ package org.vrk.accounting.domain.kafka;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,7 @@ public class Orgstructure implements Serializable {
     /**
      * Наименование организационной единицы.
      */
+    @JsonProperty("sText")
     private String sText;
     /**
      * Аббревиатура организационной единицы.

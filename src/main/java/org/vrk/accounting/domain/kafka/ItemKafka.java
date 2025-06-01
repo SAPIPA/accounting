@@ -40,6 +40,10 @@ public class ItemKafka implements Serializable {
      */
     private String measuringUnit;
     /**
+     * Цена за единицу измерения
+     */
+    private String cost;
+    /**
      * Количество в единицах измерения.
      */
     private Integer count;

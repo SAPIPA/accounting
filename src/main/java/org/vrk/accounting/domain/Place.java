@@ -24,12 +24,12 @@ public class Place {
     /**
      * ИД организационной единицы.
      */
-    @Column(name = "objId")
+    @Column(name = "obj_id")
     private String objId;
     /**
      * Наименование организационной единицы.
      */
-    @Column(name = "sText")
+    @Column(name = "s_text")
     private String sText;
     /**
      * Аббревиатура организационной единицы.
