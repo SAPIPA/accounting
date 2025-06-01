@@ -4,6 +4,9 @@ package org.vrk.accounting.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,7 +67,22 @@ public class ItemController {
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
             summary = "Скачать фото",
-            security = @SecurityRequirement(name = "bearerAuth"))
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Фото (binary)",
+                            content = @Content(
+                                    mediaType = MediaType.IMAGE_JPEG_VALUE,
+                                    schema = @Schema(type = "string", format = "binary")
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Фото не найдено"
+                    )
+            }
+    )
     public ResponseEntity<Resource> servePhoto(@PathVariable Long id) {
         ItemDTO dto = itemService.getItemById(id);
         if (dto.getPhotoFilename() == null) {
