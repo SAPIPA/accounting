@@ -38,13 +38,29 @@ public class ItemEmployeeDTO implements Serializable {
      * */
     private String pernr;
     /**
+     * Штатная должность.
+     */
+    private String plans;
+    /**
+     * Фамилия.
+     */
+    private String lastName;
+    /**
+     * Имя.
+     */
+    private String firstName;
+    /**
+     * Отчество.
+     */
+    private String middleName;
+    /**
      * ID рабочего места
      * */
-    private Long workplaceId;
+    private String workplaceName;
     /**
      * ID фактического рабочего места
      * */
-    private Long factWorkplaceId;
+    private String factWorkplaceName;
     /**
      * Кабинет
      * */

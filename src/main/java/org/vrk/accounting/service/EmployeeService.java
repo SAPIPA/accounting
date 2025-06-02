@@ -13,6 +13,7 @@ import org.vrk.accounting.repository.PlaceRepository;
 import org.vrk.accounting.repository.RZDEmployeeRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,38 +26,55 @@ public class EmployeeService {
     private final RZDEmployeeRepository rzdRepo;
     private final PlaceRepository placeRepo;
 
-    private ItemEmployee toEntity(ItemEmployeeDTO dto) {
-        // Загружаем места по их ID
-        Place wp  = placeRepo.findById(dto.getWorkplaceId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Place not found, id=" + dto.getWorkplaceId()));
-        Place fwp = placeRepo.findById(dto.getFactWorkplaceId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Place not found, id=" + dto.getFactWorkplaceId()));
-
-        return ItemEmployee.builder()
-                .id(dto.getId())
-                .snils(dto.getSnils())
-                .role(dto.getRole())
-                .pernr(dto.getPernr())
-                .workplace(wp)
-                .factWorkplace(fwp)
-                .office(dto.getOffice())
-                .build();
-        // inventories не маппим – ведётся из других сервисов
-    }
+//    private ItemEmployee toEntity(ItemEmployeeDTO dto) {
+//        // Загружаем места по их ID
+//        Place wp  = placeRepo.findById(dto.getWorkplaceId())
+//                .orElseThrow(() -> new IllegalArgumentException(
+//                        "Place not found, id=" + dto.getWorkplaceId()));
+//        Place fwp = placeRepo.findById(dto.getFactWorkplaceId())
+//                .orElseThrow(() -> new IllegalArgumentException(
+//                        "Place not found, id=" + dto.getFactWorkplaceId()));
+//
+//        return ItemEmployee.builder()
+//                .id(dto.getId())
+//                .snils(dto.getSnils())
+//                .role(dto.getRole())
+//                .pernr(dto.getPernr())
+//                .workplace(wp)
+//                .factWorkplace(fwp)
+//                .office(dto.getOffice())
+//                .build();
+//        // inventories не маппим – ведётся из других сервисов
+//    }
 
     private ItemEmployeeDTO toDto(ItemEmployee entity) {
+        String snils = entity.getSnils();
+
+        // 1) Пытаемся загрузить метаданные сотрудника по SNILS
+        Optional<RZDEmployee> maybeMeta = rzdRepo.findById(snils);
+        if (maybeMeta.isEmpty()) {
+            throw new IllegalArgumentException("RZDEmployee metadata not found for SNILS=" + snils);
+        }
+        RZDEmployee meta = maybeMeta.get();
+
+        // 2) Строим DTO с объединёнными полями
         return ItemEmployeeDTO.builder()
                 .id(entity.getId())
-                .snils(entity.getSnils())
+                .snils(snils)
                 .role(entity.getRole())
                 .pernr(entity.getPernr())
-                .workplaceId(entity.getWorkplace().getId())
-                .factWorkplaceId(entity.getFactWorkplace().getId())
+                // 2.1) данные из RZDEmployee
+                .plans(meta.getPlans())
+                .lastName(meta.getLastName())
+                .firstName(meta.getFirstName())
+                .middleName(meta.getMidName())       // в DTO поле называется middleName, в сущности RZDEmployee – midName
+                // 2.2) поля из ItemEmployee
+                .workplaceName(entity.getWorkplace().getSText())
+                .factWorkplaceName(entity.getFactWorkplace().getSText())
                 .office(entity.getOffice())
                 .build();
     }
+
 
     /**
      * Поиск сотрудников по ФИО, но только тех, у кого workplace или factWorkplace
@@ -91,13 +109,6 @@ public class EmployeeService {
                 })
                 .map(this::toDto)
                 .collect(Collectors.toList());
-    }
-
-    /** Создать нового пользователя */
-    @Transactional
-    public ItemEmployeeDTO create(ItemEmployeeDTO dto) {
-        ItemEmployee saved = empRepo.save(toEntity(dto));
-        return toDto(saved);
     }
 
     /** Получить пользователя по GUID */
@@ -185,41 +196,18 @@ public class EmployeeService {
 
     /** Обновить существующего пользователя */
     @Transactional
-    public ItemEmployeeDTO update(UUID id, ItemEmployeeDTO dto) {
-        ItemEmployee existing = empRepo.findById(id)
+    public ItemEmployeeDTO update(ItemEmployeeDTO dto) {
+        ItemEmployee existing = empRepo.findById(dto.getId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "ItemEmployee not found, id=" + id));
-
-        existing.setSnils(dto.getSnils());
-        existing.setRole(dto.getRole());
-        existing.setPernr(dto.getPernr());
+                        "ItemEmployee not found, id=" + dto.getId()));
         existing.setOffice(dto.getOffice());
 
-        // Обновляем места
-        if (!existing.getWorkplace().getId().equals(dto.getWorkplaceId())) {
-            Place wp = placeRepo.findById(dto.getWorkplaceId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Place not found, id=" + dto.getWorkplaceId()));
-            existing.setWorkplace(wp);
-        }
-        if (!existing.getFactWorkplace().getId().equals(dto.getFactWorkplaceId())) {
-            Place fwp = placeRepo.findById(dto.getFactWorkplaceId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Place not found, id=" + dto.getFactWorkplaceId()));
+        // Обновляем место
+        if (!existing.getFactWorkplace().getSText().equals(dto.getFactWorkplaceName())) {
+            Place fwp = placeRepo.findBySText(dto.getFactWorkplaceName());
             existing.setFactWorkplace(fwp);
         }
-
         ItemEmployee updated = empRepo.save(existing);
         return toDto(updated);
-    }
-
-    /** Удалить пользователя */
-    @Transactional
-    public void delete(UUID id) {
-        if (!empRepo.existsById(id)) {
-            throw new IllegalArgumentException(
-                    "ItemEmployee not found, id=" + id);
-        }
-        empRepo.deleteById(id);
     }
 }

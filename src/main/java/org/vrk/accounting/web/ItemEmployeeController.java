@@ -11,9 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.vrk.accounting.domain.dto.ItemEmployeeDTO;
-import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.service.EmployeeService;
-import org.vrk.accounting.util.secure.RoleGuard;
 
 import java.util.List;
 import java.util.UUID;
@@ -46,7 +44,7 @@ public class ItemEmployeeController {
     public List<ItemEmployeeDTO> searchByFullName(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String fullName) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
         return service.findByFullName(fullName, userId);
     }
 
@@ -59,7 +57,7 @@ public class ItemEmployeeController {
             description = "Позволяет получить пользователя по id"
     )
     public ItemEmployeeDTO getMe(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
         return service.getById(userId);
     }
 
@@ -69,18 +67,20 @@ public class ItemEmployeeController {
      */
     @GetMapping("/colleagues")
     public List<ItemEmployeeDTO> getColleagues(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
         return service.getColleaguesWithSelf(userId);
     }
 
     /**
      * Обновление пользователя — только ROLE_MODERATOR
      * */
-    @PutMapping("/{id}")
+    @PutMapping("/update")
+    @Operation(summary = "Обновление пользователя",
+            security = @SecurityRequirement(name = "bearerAuth"))
     public ItemEmployeeDTO updateUser(
-            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody ItemEmployeeDTO dto) {
-        return service.update(id, dto);
+        return service.update(dto);
     }
 
 }
