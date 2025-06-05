@@ -10,6 +10,7 @@ import org.vrk.accounting.util.file.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,8 +63,11 @@ public class ApplicationService {
     @Transactional
     public File create(ApplicationDTO dto) throws IOException {
         // TODO: отправить в KAFKA
+        dto.setSendDate(LocalDateTime.now());
         Application application = repo.save(toEntity(dto));
-        return fileUtil.generateApplication(toDto(application));
+        File file = fileUtil.generateApplication(toDto(application));
+        application.setFilePath(file.getAbsolutePath());
+        return file;
     }
 
     /** Обновить существующее заявление (type и body) */
@@ -91,3 +95,7 @@ public class ApplicationService {
         repo.deleteById(id);
     }
 }
+
+//123
+
+

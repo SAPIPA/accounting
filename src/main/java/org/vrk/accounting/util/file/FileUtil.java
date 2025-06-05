@@ -182,46 +182,19 @@ public class FileUtil {
 
 
     public File generateWriteOffApplication(ApplicationDTO dto) throws IOException {
-        // 1) Получаем список списываемых предметов из body
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items =
-                (List<Map<String, Object>>) dto.getBody().get("items");
+        String itemName = (String) dto.getBody().get("itemName");
+        String reason = (String) dto.getBody().get("reason");
 
-        // 2) Формируем заголовок таблицы: 4 колонки, высота 2.5 см (в пунктах ~180)
-        RowRenderData header = Rows.of("Наименование", "Инв. номер", "Ед. изм.", "Кол-во")
-                .textColor("FFFFFF")
-                .bgColor("C00000")
-                .center()
-                .rowHeight(2.5f)
-                .create();
-
-        // 3) Строим строки данных
-        List<RowRenderData> allRows = new ArrayList<>();
-        allRows.add(header);
-        for (Map<String, Object> item : items) {
-            RowRenderData row = Rows.create(
-                    Objects.toString(item.get("name"), ""),
-                    Objects.toString(item.get("inventoryNumber"), ""),
-                    Objects.toString(item.get("measuringUnit"), ""),
-                    Objects.toString(item.get("count"), "")
-            );
-            allRows.add(row);
-        }
-
-        // 4) Собираем TableRenderData через Tables.create(...)
-        TableRenderData table = Tables.create(allRows.toArray(new RowRenderData[0]));
-
-        // 5) Модель для POI-TL
+        // 3) Собираем модель для шаблона
         Map<String, Object> model = new HashMap<>();
-        model.put("itemTable", table);
+        model.put("item",   itemName);
+        model.put("reason", reason);
 
-        // 6) Подготовка выходного файла
         String filename = String.format("WRITE_OFF_application_%d.docx", dto.getId());
         Path outputDir = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(outputDir);
         File outFile = outputDir.resolve(filename).toFile();
 
-        // 7) Рендеринг шаблона
         try (InputStream is = WriteOffTemplate.getInputStream();
              XWPFTemplate tpl = XWPFTemplate.compile(is).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -232,30 +205,18 @@ public class FileUtil {
     }
 
     private File generateAcquisitionApplication(ApplicationDTO dto) throws IOException {
-        // 1) Достаём поля из body
-        String organization = (String) dto.getBody().get("organization");
-        String mainEngineer = (String) dto.getBody().get("mainEngineer");
-        String pernr = (String) dto.getBody().get("pernr");
-        String snils = (String) dto.getBody().get("snils");
-        String itemName = (String) dto.getBody().get("itemName");
+        String itemName = (String) dto.getBody().get("requestedItem");
         String reason = (String) dto.getBody().get("reason");
 
-        // 2) Собираем модель для шаблона
         Map<String, Object> model = new HashMap<>();
-        model.put("organization", organization);
-        model.put("mainEngineer", mainEngineer);
-        model.put("pernr", pernr);
-        model.put("snils", snils);
-        model.put("itemName", itemName);
+        model.put("item", itemName);
         model.put("reason", reason);
 
-        // 3) Подготовка выходного файла
         String filename = String.format("ACQUISITION_application_%d.docx", dto.getId());
         Path outputDir = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(outputDir);
         File outFile = outputDir.resolve(filename).toFile();
 
-        // 4) Компиляция и рендеринг шаблона
         try (InputStream is = AcquisitionTemplate.getInputStream();
              XWPFTemplate tpl = XWPFTemplate.compile(is).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -290,9 +251,8 @@ public class FileUtil {
         // Согласно POI-TL 3.2, для вставки изображения в шаблоне через {{@photo}}
         model.put("photo",
                 Pictures
-//                        .ofLocal(imgPath.toString())            // путь к локальному файлу
-                        .ofLocal("C:\\Users\\SAPIPA\\Desktop\\VKR\\Accounting\\accounting\\uploads\\items\\temp\\e35e2ec8-ccae-4408-a6ea-5364d5ba03dd.jpg")
-                        .size(200, 200)           // размер в пунктах (по умолчанию dpi=96)
+                        .ofLocal(imgPath.toString())
+                        .size(200, 200)
                         .create()
         );
 
@@ -313,49 +273,24 @@ public class FileUtil {
     }
 
     private File generateTransferApplication(ApplicationDTO dto) throws IOException {
-        // 1) Извлекаем пользователя и список элементов из тела DTO
-        String user = (String) dto.getBody().get("user");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items =
-                (List<Map<String, Object>>) dto.getBody().get("items");
 
-        // 2) Формируем заголовок таблицы: 4 колонки, цвет фона и текста, выравнивание и высота
-        RowRenderData header = Rows.of("Наименование", "Инв. номер", "Ед. изм.", "Кол-во")
-                .textColor("FFFFFF")
-                .bgColor("4472C4")
-                .center()
-                .rowHeight(2.5f)
-                .create();
+        String itemName = (String) dto.getBody().get("itemName");
+        String inventoryNumber = (String) dto.getBody().get("inventoryNumber");
+        String toEmployeeName = (String) dto.getBody().get("toEmployeeName");
+        String reason = (String) dto.getBody().get("reason");
 
-        // 3) Строим массив строк: в первой ячейке — заголовок, далее — данные
-        RowRenderData[] rows = new RowRenderData[items.size() + 1];
-        rows[0] = header;
-        for (int i = 0; i < items.size(); i++) {
-            Map<String, Object> item = items.get(i);
-            rows[i + 1] = Rows.create(
-                    Objects.toString(item.get("name"), ""),
-                    Objects.toString(item.get("inventoryNumber"), ""),
-                    Objects.toString(item.get("measuringUnit"), ""),
-                    Objects.toString(item.get("count"), "")
-            );
-        }
 
-        // 4) Создаём TableRenderData через фабрику Tables.create(...)
-        TableRenderData table = Tables.create(rows);
-
-        // 5) Подготавливаем модель для рендеринга
         Map<String, Object> model = new HashMap<>();
-        model.put("user", user);
-        model.put("itemTable", table);
+        model.put("itemName", itemName);
+        model.put("inventoryNumber", inventoryNumber);
+        model.put("toEmployeeName", toEmployeeName);
+        model.put("reason", reason);
 
-        // 6) Генерируем выходной файл
+        String filename = String.format("TRANSFER_application_%d.docx", dto.getId());
         Path outputDir = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(outputDir);
-        File outFile = outputDir.resolve(
-                String.format("TRANSFER_application_%d.docx", dto.getId())
-        ).toFile();
+        File outFile = outputDir.resolve(filename).toFile();
 
-        // 7) Компиляция и рендеринг шаблона
         try (InputStream is = TransferTemplate.getInputStream();
              XWPFTemplate tpl = XWPFTemplate.compile(is).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -366,14 +301,13 @@ public class FileUtil {
     }
 
     public File generateApplication(ApplicationDTO application) throws IOException {
-        switch (application.getType()) {
-            case ADD -> generateAddApplication(application);
-            case WRITE_OFF -> generateWriteOffApplication(application);
+        return switch (application.getType()) {
+            case ADD         -> generateAddApplication(application);
+            case WRITE_OFF   -> generateWriteOffApplication(application);
             case ACQUISITION -> generateAcquisitionApplication(application);
-            case TRANSFER -> generateTransferApplication(application);
+            case TRANSFER    -> generateTransferApplication(application);
             default -> throw new IllegalArgumentException("Unsupported type: " + application.getType());
-        }
-        return null;
+        };
     }
 
     public File generateInventoryList(InventoryDTO inventory,
