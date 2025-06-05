@@ -46,7 +46,6 @@ public class OcrController {
             if (bi == null) {
                 throw new IOException("Unsupported image format");
             }
-
             // 2) Передаём в сервис
             String digits = service.extractDigits(bi);
 

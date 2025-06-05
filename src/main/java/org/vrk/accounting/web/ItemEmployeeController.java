@@ -72,6 +72,18 @@ public class ItemEmployeeController {
     }
 
     /**
+     * Получить всех МОЛов
+     * Доступно только ROLE_MODERATOR.
+     */
+    @GetMapping("/mols")
+    public List<ItemEmployeeDTO> getMOLS(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
+        return service.getMOLS(userId);
+    }
+
+
+
+    /**
      * Обновление пользователя — только ROLE_MODERATOR
      * */
     @PutMapping("/update")

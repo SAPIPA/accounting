@@ -211,24 +211,29 @@ public class InventoryService {
         Inventory inv = inventoryRepo.findById(inventoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + inventoryId));
 
+        // 1) Очищаем существующую коллекцию
         inv.getInventoryLists().clear();
-        List<InventoryList> newLists = new ArrayList<>();
+
+        // 2) Заполняем «оригинальный» список новыми элементами
         for (InventoryListDTO dto : results) {
             if (!Objects.equals(dto.getInventoryId(), inventoryId)) {
-                throw new IllegalArgumentException("Wrong inventoryId in list item: " + dto.getInventoryId());
+                throw new IllegalArgumentException(
+                        "Wrong inventoryId in list item: " + dto.getInventoryId());
             }
             Item item = itemRepo.findById(dto.getItemId())
-                    .orElseThrow(() -> new IllegalArgumentException("Item not found: " + dto.getItemId()));
-            newLists.add(InventoryList.builder()
-                    .inventory(inv)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Item not found: " + dto.getItemId()));
+            InventoryList entity = InventoryList.builder()
+                    .inventory(inv) // связываем «ребёнок → родитель»
                     .item(item)
                     .isPresent(dto.isPresent())
                     .note(dto.getNote())
-                    .build());
+                    .build();
+            inv.getInventoryLists().add(entity); // добавляем в тот же список
         }
-        inv.setInventoryLists(newLists);
-        inv.setEndDate(LocalDateTime.now());
 
+        // 3) Устанавливаем дату окончания и сохраняем
+        inv.setEndDate(LocalDateTime.now());
         return toDto(inventoryRepo.save(inv));
     }
 

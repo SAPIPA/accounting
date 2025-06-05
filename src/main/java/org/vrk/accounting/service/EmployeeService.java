@@ -186,6 +186,46 @@ public class EmployeeService {
         return dtos;
     }
 
+    @Transactional
+    public List<ItemEmployeeDTO> getMOLS(UUID currentUserId) {
+        // 1) Текущий пользователь
+        ItemEmployee me = empRepo.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found: " + currentUserId));
+
+        // 2) Вытаскиваем orgeh из вспомогательной таблицы
+        String snils = me.getSnils();
+        RZDEmployee meta = rzdRepo.findById(snils)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Metadata for SNILS not found: " + snils));
+        String orgeh = meta.getOrgeh();
+
+        // 3) Находим всех RZDEmployee с тем же orgeh
+        List<RZDEmployee> peersMeta = rzdRepo.findByOrgeh(orgeh);
+        Set<String> peerSnils = peersMeta.stream()
+                .map(RZDEmployee::getSnils)
+                .collect(Collectors.toSet());
+
+        // 4) Достаём из ItemEmployee по snils
+        List<ItemEmployee> peers = empRepo.findBySnilsIn(peerSnils);
+
+        // 5) Фильтруем тех, у кого роль ROLE_MODERATOR, и одновременно исключаем текущего по ID
+        peers = peers.stream()
+                .filter(e -> e.getRole() == Role.ROLE_MODERATOR
+                        && !e.getId().equals(currentUserId))
+                .collect(Collectors.toList());
+
+        // 6) Мапим в DTO
+        List<ItemEmployeeDTO> dtos = peers.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+
+        return dtos;
+    }
+
+
+
+
     /** Список всех пользователей */
     @Transactional
     public List<ItemEmployeeDTO> list() {

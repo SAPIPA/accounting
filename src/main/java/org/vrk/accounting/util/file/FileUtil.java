@@ -269,11 +269,15 @@ public class FileUtil {
         // 1) Забираем данные из dto.body
         String itemName = (String) dto.getBody().get("itemName");
         String reason = (String) dto.getBody().get("reason");
-        String photoFilename = (String) dto.getBody().get("photoFilename");
+        String photoFilename = (String) dto.getBody().get("file");
 
         // 2) Полный путь до файла
-        Path imgPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(photoFilename);
-        // проверяем что файл существует
+        Path imgPath = Paths.get(uploadDir)                      // корневая директория, например "/uploads"
+                .toAbsolutePath()
+                .normalize()
+                .resolve("items")                     // добавляем папку "items"
+                .resolve("temp")                       // добавляем вложенную папку "tmp"
+                .resolve(photoFilename);              // затем имя файла        // проверяем что файл существует
         if (!Files.exists(imgPath)) {
             throw new FileNotFoundException("Photo not found: " + imgPath);
         }
@@ -284,9 +288,10 @@ public class FileUtil {
         model.put("reason", reason);
 
         // Согласно POI-TL 3.2, для вставки изображения в шаблоне через {{@photo}}
-        model.put("@photo",
+        model.put("photo",
                 Pictures
-                        .ofLocal(imgPath.toString())            // путь к локальному файлу
+//                        .ofLocal(imgPath.toString())            // путь к локальному файлу
+                        .ofLocal("C:\\Users\\SAPIPA\\Desktop\\VKR\\Accounting\\accounting\\uploads\\items\\temp\\e35e2ec8-ccae-4408-a6ea-5364d5ba03dd.jpg")
                         .size(200, 200)           // размер в пунктах (по умолчанию dpi=96)
                         .create()
         );

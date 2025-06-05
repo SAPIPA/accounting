@@ -41,6 +41,7 @@ public class ApplicationService {
                 .build();
     }
 
+
     /** Список всех заявлений */
     @Transactional
     public List<ApplicationDTO> listAll() {
@@ -61,8 +62,8 @@ public class ApplicationService {
     @Transactional
     public File create(ApplicationDTO dto) throws IOException {
         // TODO: отправить в KAFKA
-        repo.save(toEntity(dto));
-        return fileUtil.generateApplication(dto);
+        Application application = repo.save(toEntity(dto));
+        return fileUtil.generateApplication(toDto(application));
     }
 
     /** Обновить существующее заявление (type и body) */

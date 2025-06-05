@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.vrk.accounting.domain.dto.InventoryDTO;
 import org.vrk.accounting.domain.dto.InventoryListDTO;
@@ -46,28 +48,28 @@ public class InventoryController {
     @Operation(
             summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
-    @GetMapping("/prepare-init/{initiatorId}")
-    public ResponseEntity<InventoryDTO> prepareInit(@PathVariable("initiatorId") UUID initiatorId) {
-        InventoryDTO dto = inventoryService.prepareInit(initiatorId);
+    @GetMapping("/prepare-init")
+    public ResponseEntity<InventoryDTO> prepareInit(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
+        InventoryDTO dto = inventoryService.prepareInit(userId);
         return ResponseEntity.ok(dto);
     }
 
     /**
      * 2) Создать новый процесс инвентаризации (кнопка «Отправить» на экране 6):
-     *    POST /api/inventories/{initiatorId}
+     *    POST /api/inventories
      *    Body: InventoryDTO (с полями startDate, responsibleEmployeeId, commissionMemberIds, inventoryLists).
      *    Возвращает: созданный InventoryDTO (с присвоенным id, без endDate).
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
-    @PostMapping("/{initiatorId}")
+    @PostMapping("/create")
     public ResponseEntity<InventoryDTO> createInventory(
-            @PathVariable("initiatorId") UUID initiatorId,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody InventoryDTO dto) {
-
-        InventoryDTO created = inventoryService.create(initiatorId, dto);
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
+        InventoryDTO created = inventoryService.create(userId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -77,7 +79,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{id}")
     public ResponseEntity<InventoryDTO> getById(@PathVariable("id") Long id) {
@@ -91,7 +92,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping
     public ResponseEntity<List<InventoryDTO>> listAll() {
@@ -106,7 +106,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/{id}")
     public ResponseEntity<InventoryDTO> update(
@@ -123,7 +122,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
@@ -137,7 +135,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{id}/items-to-check")
     public ResponseEntity<List<ItemDTO>> getItemsToCheck(@PathVariable("id") Long id) {
@@ -153,7 +150,6 @@ public class InventoryController {
      */
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
-            summary = "Загрузить/обновить фото",
             security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{id}/results")
     public ResponseEntity<InventoryDTO> saveResults(

@@ -26,7 +26,10 @@ import org.vrk.accounting.domain.dto.ItemDTO;
 import org.vrk.accounting.service.ItemService;
 import org.vrk.accounting.util.file.FileStorage;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @SecurityScheme(
@@ -58,6 +61,25 @@ public class ItemController {
         String filename = fileStorage.store(file, id);
         // обновляем у Item поле photoFilename
         return itemService.updatePhotoFilename(id, filename);
+    }
+
+    /**
+     * 2) Эндпоинт для автономной загрузки фото (без привязки к существующему заявлению).
+     *    Этот метод может использоваться, если нужно сначала сохранить файл,
+     *    получить имя и отправить его в JSON при создании нового ApplicationDTO.
+     */
+    @PostMapping(path = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Загрузить фото (не привязано к заявлению)",
+            description = "Сохраняет файл во временную папку uploads/items/0/ и возвращает JSON с именем файла."
+    )
+    public ResponseEntity<Map<String, String>> uploadStandalonePhoto(
+            @RequestPart("file") MultipartFile file) throws IOException {
+        // Сохраняем файл с itemId = 0 (или любым условным значением)
+        String filename = fileStorage.store(file, 0L);
+
+        // Возвращаем JSON: { "photoFilename": "<filename>" }
+        return ResponseEntity.ok(Collections.singletonMap("photoFilename", filename));
     }
 
     /**

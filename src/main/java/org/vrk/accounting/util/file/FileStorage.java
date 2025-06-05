@@ -17,6 +17,26 @@ import java.util.UUID;
 public class FileStorage {
     private final Path root = Paths.get("uploads/items");
 
+    /**
+     * Сохраняет файл внутри папки uploads/temp/, возвращает уникальное имя.
+     */
+    public String storeTemp(MultipartFile file) {
+        try {
+            // Используем отдельную папку “temp” для несвязанных фотографий
+            Path folder = root.resolve("temp");
+            Files.createDirectories(folder);
+
+            String ext = getExt(file.getOriginalFilename());
+            String filename = UUID.randomUUID() + ext;
+            Path target = folder.resolve(filename);
+
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return filename;
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось сохранить временный файл", e);
+        }
+    }
+
     public String store(MultipartFile file, Long itemId) {
         try {
             Path folder = root.resolve(itemId.toString());
