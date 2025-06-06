@@ -302,7 +302,9 @@ public class FileUtil {
 
     public File generateInventoryList(InventoryDTO dto) throws IOException {
         // 1) Сразу собираем «простые» поля
-        String startDate = String.valueOf(dto.getStartDate());
+        LocalDate startDate = LocalDate.from(dto.getStartDate());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        String formatted = startDate.format(formatter);
         ItemEmployeeDTO responsibleEmployee = employeeService.toDto(
                 itemEmployeeRepository.findById(dto.getResponsibleEmployeeId()).orElseThrow());
         String responsibleEmployeeName = responsibleEmployee.getLastName()
@@ -342,7 +344,7 @@ public class FileUtil {
 
         // 3) Собираем модель и привязываем политику LoopRowTableRenderPolicy
         Map<String, Object> model = new HashMap<>();
-        model.put("startDate", startDate);
+        model.put("startDate", formatted);
         model.put("responsibleEmployeeName", responsibleEmployeeName);
         model.put("responsibleEmployeePosition", responsibleEmployeePosition);
         model.put("commissionChairmanName", commissionChairmanName);
