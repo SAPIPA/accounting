@@ -322,10 +322,10 @@ public class FileUtil {
 
         // 2) Разворачиваем список ФИО членов комиссии
         //    Предполагаем, что commissionNames содержит маппинг UUID → ФИО
-        List<String> commissionMembers = inventory.getCommissionMemberIds().stream()
-                .map(commissionNames::get)
-                .collect(Collectors.toList());
-        model.put("commissionMembers", commissionMembers);
+//        List<String> commissionMembers = inventory.getCommissionMemberIds().stream()
+//                .map(commissionNames::get)
+//                .collect(Collectors.toList());
+//        model.put("commissionMembers", commissionMembers);
 
         // 3) Собираем список позиций описи для таблицы
         //    Каждая InventoryListDTO дополняется детальной инфой из itemIndex

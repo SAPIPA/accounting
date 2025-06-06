@@ -26,27 +26,6 @@ public class EmployeeService {
     private final RZDEmployeeRepository rzdRepo;
     private final PlaceRepository placeRepo;
 
-//    private ItemEmployee toEntity(ItemEmployeeDTO dto) {
-//        // Загружаем места по их ID
-//        Place wp  = placeRepo.findById(dto.getWorkplaceId())
-//                .orElseThrow(() -> new IllegalArgumentException(
-//                        "Place not found, id=" + dto.getWorkplaceId()));
-//        Place fwp = placeRepo.findById(dto.getFactWorkplaceId())
-//                .orElseThrow(() -> new IllegalArgumentException(
-//                        "Place not found, id=" + dto.getFactWorkplaceId()));
-//
-//        return ItemEmployee.builder()
-//                .id(dto.getId())
-//                .snils(dto.getSnils())
-//                .role(dto.getRole())
-//                .pernr(dto.getPernr())
-//                .workplace(wp)
-//                .factWorkplace(fwp)
-//                .office(dto.getOffice())
-//                .build();
-//        // inventories не маппим – ведётся из других сервисов
-//    }
-
     private ItemEmployeeDTO toDto(ItemEmployee entity) {
         String snils = entity.getSnils();
 

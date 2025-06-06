@@ -5,9 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "item_inventory")
@@ -43,15 +41,11 @@ public class Inventory {
     private ItemEmployee responsibleEmployee;
 
     /**
-     * Список членов комиссии (ItemEmployee).
+     * Материально-ответственное лицо (МОЛ), чье имущество проверяем.
      */
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "inventory_user",
-            joinColumns = @JoinColumn(name = "inventory_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<ItemEmployee> commissionMembers = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commission_chairman_employee_id", nullable = false)
+    private ItemEmployee commissionChairman;
 
     /**
      * Инвентарная опись (результаты). Заполняется после проверки.

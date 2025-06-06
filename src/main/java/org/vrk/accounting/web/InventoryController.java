@@ -94,8 +94,9 @@ public class InventoryController {
     @Operation(
             security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping
-    public ResponseEntity<List<InventoryDTO>> listAll() {
-        List<InventoryDTO> list = inventoryService.list();
+    public ResponseEntity<List<InventoryDTO>> listAll(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getClaim("internalGuid"));
+        List<InventoryDTO> list = inventoryService.list(userId);
         return ResponseEntity.ok(list);
     }
 

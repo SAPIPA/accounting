@@ -10,13 +10,15 @@ import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.dto.InventoryDTO;
 import org.vrk.accounting.domain.dto.InventoryListDTO;
 import org.vrk.accounting.domain.dto.ItemDTO;
-import org.vrk.accounting.domain.enums.Role;
 import org.vrk.accounting.repository.InventoryRepository;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,22 +32,18 @@ public class InventoryService {
 
     /**
      * Подготовка данных для экрана «Инициация».
+     * Теперь возвращаем DTO с единственным председателем комиссии (инициатор).
      */
     @Transactional
     public InventoryDTO prepareInit(UUID initiatorId) {
         ItemEmployee me = empRepo.findById(initiatorId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + initiatorId));
-        String objId = me.getFactWorkplace().getObjId();
 
-        // Члены комиссии
-        LinkedHashSet<UUID> commission = new LinkedHashSet<>();
-        commission.add(initiatorId);
-        empRepo.findByRoleAndFactWorkplace_ObjId(Role.ROLE_COMMISSION_MEMBER, objId)
-                .stream()
-                .map(ItemEmployee::getId)
-                .forEach(commission::add);
+        // По умолчанию председатель комиссии — инициатор
+        UUID defaultChairman = initiatorId;
 
         // Начальный список InventoryListDTO по всем Item на том же factWorkplace
+        String objId = me.getFactWorkplace().getObjId();
         List<InventoryListDTO> lists = itemRepo.findByResponsible_FactWorkplace_ObjId(objId)
                 .stream()
                 .map(item -> InventoryListDTO.builder()
@@ -56,50 +54,46 @@ public class InventoryService {
                 .collect(Collectors.toList());
 
         return InventoryDTO.builder()
-                .commissionMemberIds(commission)
+                .commissionChairman(defaultChairman)
                 .inventoryLists(lists)
                 .build();
     }
 
     /**
      * Создание нового процесса инвентаризации.
+     * Принимаем в DTO только одного commissionChairman.
      */
     @Transactional
     public InventoryDTO create(UUID initiatorId, InventoryDTO dto) {
-        // валидация
-        if (dto.getStartDate() == null)
+        dto.setCommissionChairman(initiatorId);
+        // Валидация обязательных полей
+        if (dto.getStartDate() == null) {
             throw new IllegalArgumentException("Не указана дата старта");
-        if (dto.getResponsibleEmployeeId() == null)
+        }
+        if (dto.getResponsibleEmployeeId() == null) {
             throw new IllegalArgumentException("Не указан M.O.L.");
+        }
+        if (dto.getCommissionChairman() == null) {
+            throw new IllegalArgumentException("Не указан председатель комиссии");
+        }
 
-        // MOL
+        // Находим M.O.L.
         ItemEmployee mol = empRepo.findById(dto.getResponsibleEmployeeId())
                 .orElseThrow(() -> new IllegalArgumentException("Responsible not found: " + dto.getResponsibleEmployeeId()));
 
-        // собираем Inventory
+        // Составляем сущность Inventory
         Inventory inv = Inventory.builder()
                 .startDate(dto.getStartDate())
                 .endDate(null)
                 .responsibleEmployee(mol)
                 .build();
 
-        // члены комиссии
-        LinkedHashSet<ItemEmployee> members = new LinkedHashSet<>();
-        ItemEmployee initiator = empRepo.findById(initiatorId)
-                .orElseThrow(() -> new IllegalArgumentException("Initiator not found: " + initiatorId));
-        members.add(initiator);
-        if (dto.getCommissionMemberIds() != null) {
-            for (UUID uid : dto.getCommissionMemberIds()) {
-                if (!uid.equals(initiatorId)) {
-                    ItemEmployee e = empRepo.findById(uid)
-                            .orElseThrow(() -> new IllegalArgumentException("Commission member not found: " + uid));
-                    members.add(e);
-                }
-            }
-        }
-        inv.setCommissionMembers(members);
+        // Находим и устанавливаем председателя комиссии
+        ItemEmployee chairman = empRepo.findById(dto.getCommissionChairman())
+                .orElseThrow(() -> new IllegalArgumentException("Commission chairman not found: " + dto.getCommissionChairman()));
+        inv.setCommissionChairman(chairman);
 
-        // предварительные записи описи
+        // Предварительные записи описи (если они пришли в dto)
         List<InventoryList> items = new ArrayList<>();
         if (dto.getInventoryLists() != null) {
             for (InventoryListDTO l : dto.getInventoryLists()) {
@@ -115,13 +109,13 @@ public class InventoryService {
         }
         inv.setInventoryLists(items);
 
-        // сохранение
+        // Сохраняем и возвращаем DTO
         Inventory saved = inventoryRepo.save(inv);
         return toDto(saved);
     }
 
     /**
-     * Получить одну инвентаризацию.
+     * Получить одну инвентаризацию по ID.
      */
     @Transactional
     public InventoryDTO getById(Long id) {
@@ -131,42 +125,45 @@ public class InventoryService {
     }
 
     /**
-     * Список всех инвентаризаций.
+     * Список всех инвентаризаций пользователя (по ответственному сотруднику).
      */
     @Transactional
-    public List<InventoryDTO> list() {
-        return inventoryRepo.findAll().stream()
+    public List<InventoryDTO> list(UUID userId) {
+        return inventoryRepo.findAllByCommissionChairman_Id(userId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Обновить метаданные инвентаризации (дату, M.O.L., комиссию).
+     * Обновить метаданные инвентаризации (дату, M.O.L., председателя комиссии).
      */
     @Transactional
     public InventoryDTO update(Long id, InventoryDTO dto) {
         Inventory inv = inventoryRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + id));
 
-        if (dto.getStartDate() != null) inv.setStartDate(dto.getStartDate());
+        // Обновляем дату старта/окончания, если переданы
+        if (dto.getStartDate() != null) {
+            inv.setStartDate(dto.getStartDate());
+        }
         inv.setEndDate(dto.getEndDate());
 
+        // Обновляем M.O.L. (если передали новый)
         if (dto.getResponsibleEmployeeId() != null) {
             ItemEmployee mol = empRepo.findById(dto.getResponsibleEmployeeId())
                     .orElseThrow(() -> new IllegalArgumentException("Responsible not found: " + dto.getResponsibleEmployeeId()));
             inv.setResponsibleEmployee(mol);
         }
 
-        if (dto.getCommissionMemberIds() != null) {
-            LinkedHashSet<ItemEmployee> members = dto.getCommissionMemberIds().stream()
-                    .map(uid -> empRepo.findById(uid)
-                            .orElseThrow(() -> new IllegalArgumentException("Commission member not found: " + uid)))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            inv.getCommissionMembers().clear();
-            inv.getCommissionMembers().addAll(members);
+        // Обновляем единственного председателя комиссии (если передали новый)
+        if (dto.getCommissionChairman() != null) {
+            ItemEmployee chairman = empRepo.findById(dto.getCommissionChairman())
+                    .orElseThrow(() -> new IllegalArgumentException("Commission chairman not found: " + dto.getCommissionChairman()));
+            inv.setCommissionChairman(chairman);
         }
 
-        return toDto(inventoryRepo.save(inv));
+        Inventory updated = inventoryRepo.save(inv);
+        return toDto(updated);
     }
 
     /**
@@ -174,13 +171,14 @@ public class InventoryService {
      */
     @Transactional
     public void delete(Long id) {
-        if (!inventoryRepo.existsById(id))
+        if (!inventoryRepo.existsById(id)) {
             throw new IllegalArgumentException("Inventory not found: " + id);
+        }
         inventoryRepo.deleteById(id);
     }
 
     /**
-     * Получить список ItemDTO для проверки.
+     * Получить список ItemDTO для проверки (описи). Логика не меняется.
      */
     @Transactional
     public List<ItemDTO> getItemsToCheck(Long inventoryId) {
@@ -193,18 +191,25 @@ public class InventoryService {
 
         UUID molId = inv.getResponsibleEmployee().getId();
 
-        // служебные
-        List<Item> service = itemRepo.findAllByResponsible_Id(molId);
-        // личные (фактические)
-        List<Item> personal = itemRepo.findAllByCurrentItemEmployee_Id(molId);
+        // служебные (isPersonal == false)
+        List<Item> service = itemRepo.findAllByResponsible_Id(molId).stream()
+                .filter(item -> Boolean.FALSE.equals(item.getIsPersonal()))
+                .collect(Collectors.toList());
+
+        // личные (фактические), но тоже отфильтруем по isPersonal == false
+        List<Item> personal = itemRepo.findAllByCurrentItemEmployee_Id(molId).stream()
+                .filter(item -> Boolean.FALSE.equals(item.getIsPersonal()))
+                .collect(Collectors.toList());
 
         return Stream.concat(service.stream(), personal.stream())
                 .map(this::itemToDto)
                 .collect(Collectors.toList());
     }
 
+
     /**
      * Сохранить результаты (опись) и закрыть инвентаризацию.
+     * Логика не меняется, просто устанавливается endDate.
      */
     @Transactional
     public InventoryDTO saveInventoryResults(Long inventoryId, List<InventoryListDTO> results) {
@@ -214,7 +219,7 @@ public class InventoryService {
         // 1) Очищаем существующую коллекцию
         inv.getInventoryLists().clear();
 
-        // 2) Заполняем «оригинальный» список новыми элементами
+        // 2) Заполняем новой коллекцией
         for (InventoryListDTO dto : results) {
             if (!Objects.equals(dto.getInventoryId(), inventoryId)) {
                 throw new IllegalArgumentException(
@@ -229,7 +234,7 @@ public class InventoryService {
                     .isPresent(dto.isPresent())
                     .note(dto.getNote())
                     .build();
-            inv.getInventoryLists().add(entity); // добавляем в тот же список
+            inv.getInventoryLists().add(entity);
         }
 
         // 3) Устанавливаем дату окончания и сохраняем
@@ -241,10 +246,13 @@ public class InventoryService {
     // private helpers
     // --------------------
 
+    /**
+     * Преобразуем сущность в DTO, заполняя только одного chairman.
+     */
     private InventoryDTO toDto(Inventory inv) {
-        Set<UUID> cm = inv.getCommissionMembers().stream()
-                .map(ItemEmployee::getId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        UUID chairmanId = inv.getCommissionChairman() != null
+                ? inv.getCommissionChairman().getId()
+                : null;
 
         List<InventoryListDTO> lists = inv.getInventoryLists().stream()
                 .map(l -> InventoryListDTO.builder()
@@ -261,12 +269,22 @@ public class InventoryService {
                 .startDate(inv.getStartDate())
                 .endDate(inv.getEndDate())
                 .responsibleEmployeeId(inv.getResponsibleEmployee().getId())
-                .commissionMemberIds(cm)
+                .commissionChairman(chairmanId)
                 .inventoryLists(lists)
                 .build();
     }
 
     private ItemDTO itemToDto(Item item) {
+        // 1) Сначала пробуем взять office из currentItemEmployee
+        String officeValue = null;
+        if (item.getCurrentItemEmployee() != null) {
+            officeValue = item.getCurrentItemEmployee().getOffice();
+        }
+        // 2) Если currentItemEmployee не задан или у него office == null, берем из responsible
+        if (officeValue == null && item.getResponsible() != null) {
+            officeValue = item.getResponsible().getOffice();
+        }
+
         return ItemDTO.builder()
                 .id(item.getId())
                 .isPersonal(item.getIsPersonal())
@@ -277,11 +295,15 @@ public class InventoryService {
                 .receiptDate(item.getReceiptDate())
                 .serviceNumber(item.getServiceNumber())
                 .status(item.getStatus())
-                .responsibleUserId(item.getResponsible().getId())
+                .responsibleUserId(item.getResponsible() != null
+                        ? item.getResponsible().getId()
+                        : null)
                 .currentUserId(item.getCurrentItemEmployee() != null
                         ? item.getCurrentItemEmployee().getId()
                         : null)
                 .photoFilename(item.getPhotoFilename())
+                .office(officeValue)   // ← Устанавливаем вычисленный кабинет
                 .build();
     }
 }
+

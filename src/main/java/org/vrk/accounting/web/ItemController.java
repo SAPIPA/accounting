@@ -130,6 +130,16 @@ public class ItemController {
 
     @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
     @Operation(
+            summary = "Пользователь получает свои материальные средства",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @GetMapping("/colleague/{id}")
+    public List<ItemDTO> getColleagueItems(@PathVariable UUID id) {
+        return itemService.getItemsByCurrentUser(id);
+    }
+
+    @PreAuthorize("hasAnyRole('COMMISSION_MEMBER','MODERATOR', 'USER')")
+    @Operation(
             summary = "Простой поиск",
             security = @SecurityRequirement(name = "bearerAuth")
     )

@@ -58,9 +58,4 @@ public class ItemEmployee {
      */
     @Column(name = "office")
     private String office;
-    /**
-     * Обратная связь с комиссией.
-     */
-    @ManyToMany(mappedBy = "commissionMembers")
-    private Set<Inventory> inventories = new HashSet<>();
 }

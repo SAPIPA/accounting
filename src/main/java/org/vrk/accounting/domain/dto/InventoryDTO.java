@@ -44,9 +44,9 @@ public class InventoryDTO implements Serializable {
     private UUID responsibleEmployeeId;
 
     /**
-     * Список ID сотрудников (UUID), которые входят в состав комиссии.
+     * Председатель комиссии.
      */
-    private Set<UUID> commissionMemberIds;
+    private UUID commissionChairman;
 
     /**
      * Список строк описи (если перечень уже заполнен).

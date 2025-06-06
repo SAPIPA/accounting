@@ -51,6 +51,14 @@ public class ItemService {
     }
 
     private ItemDTO toDto(Item entity) {
+        // Вычисляем office по приоритету: currentItemEmployee → responsible → null
+        String officeValue = null;
+        if (entity.getCurrentItemEmployee() != null) {
+            officeValue = entity.getCurrentItemEmployee().getOffice();
+        } else if (entity.getResponsible() != null) {
+            officeValue = entity.getResponsible().getOffice();
+        }
+
         return ItemDTO.builder()
                 .id(entity.getId())
                 .isPersonal(entity.getIsPersonal())
@@ -70,6 +78,7 @@ public class ItemService {
                                 ? entity.getCurrentItemEmployee().getId()
                                 : null)
                 .photoFilename(entity.getPhotoFilename())
+                .office(officeValue)
                 .build();
     }
 

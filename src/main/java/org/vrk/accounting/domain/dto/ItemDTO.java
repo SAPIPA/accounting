@@ -70,4 +70,8 @@ public class ItemDTO implements Serializable {
      * Имя файла (backend) и URL (frontend)
      * */
     private String photoFilename;
+    /**
+     * Кабинет (office) фактического или ответственного сотрудника.
+     */
+    private String office;
 }
