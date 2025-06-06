@@ -10,17 +10,19 @@ import org.vrk.accounting.domain.ItemEmployee;
 import org.vrk.accounting.domain.dto.InventoryDTO;
 import org.vrk.accounting.domain.dto.InventoryListDTO;
 import org.vrk.accounting.domain.dto.ItemDTO;
+import org.vrk.accounting.domain.kafka.Notification;
 import org.vrk.accounting.repository.InventoryRepository;
 import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
+import org.vrk.accounting.service.kafka.Producer.NotificationProducer;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class InventoryService {
     private final InventoryRepository inventoryRepo;
     private final ItemEmployeeRepository empRepo;
     private final ItemRepository itemRepo;
+    private final NotificationProducer notificationProducer;
 
     public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
         Set<Object> seen = ConcurrentHashMap.newKeySet();
@@ -70,6 +73,7 @@ public class InventoryService {
      */
     @Transactional
     public InventoryDTO create(UUID initiatorId, InventoryDTO dto) {
+
         dto.setCommissionChairman(initiatorId);
         // Валидация обязательных полей
         if (dto.getStartDate() == null) {
@@ -116,6 +120,13 @@ public class InventoryService {
 
         // Сохраняем и возвращаем DTO
         Inventory saved = inventoryRepo.save(inv);
+
+
+        // 2. Формирование уведомления о создании нового акта инвентаризации
+        Notification notification = buildNotificationForInventoryAct(saved);
+        // 3. Отправка уведомления
+        notificationProducer.sendNotification(notification);
+
         return toDto(saved);
     }
 
@@ -304,5 +315,36 @@ public class InventoryService {
                 .office(officeValue)   // ← Устанавливаем вычисленный кабинет
                 .build();
     }
-}
 
+    private Notification buildNotificationForInventoryAct(Inventory inv) {
+        // Предположим, кому нужно отправлять уведомление? Например, председателю комиссии:
+        String destinationSnils = inv.getCommissionChairman().getSnils();
+        String destinationId = inv.getCommissionChairman().getId().toString();
+
+        String source = "INVENTORY_SERVICE";
+        String sourceUuid = inv.getId().toString();
+
+        String text = String.format(
+                "Создана новая инвентаризация (акт) с ID=%d. Председатель комиссии: %s",
+                inv.getId(),
+                inv.getCommissionChairman().getId()
+        );
+
+        String status = "NEW";
+        String type = "INVENTORY_ACT_CREATED";
+
+        String creationDate = LocalDateTime.now()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+        return Notification.builder()
+                .destinationSnils(destinationSnils)
+                .destinationId(destinationId)
+                .source(source)
+                .sourceUuid(sourceUuid)
+                .text(text)
+                .status(status)
+                .type(type)
+                .creationDate(creationDate)
+                .build();
+    }
+}

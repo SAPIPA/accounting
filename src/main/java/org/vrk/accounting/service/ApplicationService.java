@@ -4,13 +4,17 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.vrk.accounting.domain.Application;
+import org.vrk.accounting.domain.dto.ActDTO;
 import org.vrk.accounting.domain.dto.ApplicationDTO;
+import org.vrk.accounting.domain.kafka.Notification;
 import org.vrk.accounting.repository.ApplicationRepository;
+import org.vrk.accounting.service.kafka.Producer.NotificationProducer;
 import org.vrk.accounting.util.file.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +24,7 @@ public class ApplicationService {
 
     private final ApplicationRepository repo;
     private final FileUtil fileUtil;
+    private final NotificationProducer notificationProducer;
 
     // Вспомогательные мапперы DTO ⇄ Entity
     private Application toEntity(ApplicationDTO dto) {
@@ -62,12 +67,13 @@ public class ApplicationService {
     /** Создать новое заявление */
     @Transactional
     public File create(ApplicationDTO dto) throws IOException {
-        // TODO: отправить в KAFKA
         dto.setSendDate(LocalDateTime.now());
         Application application = repo.save(toEntity(dto));
         File file = fileUtil.generateApplication(toDto(application));
         application.setFilePath(file.getAbsolutePath());
-        repo.save(application);
+        application = repo.save(application);
+        Notification notification = buildNotificationForApplication(toDto(application));
+        notificationProducer.sendNotification(notification);
         return file;
     }
 
@@ -94,6 +100,33 @@ public class ApplicationService {
             throw new IllegalArgumentException("Заявление не найдено: id=" + id);
         }
         repo.deleteById(id);
+    }
+
+    private Notification buildNotificationForApplication(ApplicationDTO dto) {
+        String destinationSnils = "01234567899";
+        String destinationId = "fc6196df-061c-4553-81a9-6c73e716c5c4";
+
+        String source = "APPLICATION_SERVICE";
+        String sourceUuid = dto.getId().toString();
+
+        String text = "Вам поступило заявление на подписание";
+
+        String status = "NEW";
+        String type = "INVENTORY_ACT_CREATED";
+
+        String creationDate = LocalDateTime.now()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+        return Notification.builder()
+                .destinationSnils(destinationSnils)
+                .destinationId(destinationId)
+                .source(source)
+                .sourceUuid(sourceUuid)
+                .text(text)
+                .status(status)
+                .type(type)
+                .creationDate(creationDate)
+                .build();
     }
 }
 
