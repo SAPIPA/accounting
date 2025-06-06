@@ -42,8 +42,11 @@ public class ActService {
     /** Создать новый акт */
     @Transactional
     public File createAct(ActDTO dto) throws IOException {
-        repo.save(toEntity(dto));
-        return fileUtil.generateAct(dto);
+        Act act = repo.save(toEntity(dto));
+        File file = fileUtil.generateAct(toDto(act));
+        act.setFilePath(file.getAbsolutePath());
+        repo.save(act);
+        return file;
     }
 
     /** Получить акт по ID */

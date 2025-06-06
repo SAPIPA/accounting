@@ -67,6 +67,7 @@ public class ApplicationService {
         Application application = repo.save(toEntity(dto));
         File file = fileUtil.generateApplication(toDto(application));
         application.setFilePath(file.getAbsolutePath());
+        repo.save(application);
         return file;
     }
 

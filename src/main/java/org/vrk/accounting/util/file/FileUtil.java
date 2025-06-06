@@ -129,40 +129,23 @@ public class FileUtil {
         return outFile;
     }
 
-    private File generateServiceAct(ActDTO act) throws IOException {
-        // 1) Собираем модель текстовых полей
+    private File generateServiceAct(ActDTO dto) throws IOException {
+        String itemName = (String) dto.getBody().get("itemName");
+        String inventoryNumber = (String) dto.getBody().get("inventoryNumber");
+        String serviceNumber = (String) dto.getBody().get("serviceNumber");
+
         Map<String, Object> model = new HashMap<>();
-        model.put("organization", act.getBody().get("organization"));
+        model.put("itemName", itemName);
+        model.put("inventoryNumber", inventoryNumber);
+        model.put("serviceNumber", serviceNumber);
 
-        LocalDate date = LocalDate.parse(act.getBody().get("date").toString());
-        model.put("date", date.format(RUSSIAN_FORMATTER));
-
-        model.put("itemName", act.getBody().get("itemName"));
-        model.put("model", act.getBody().get("model"));
-        model.put("serialNumber", act.getBody().get("serialNumber"));
-        model.put("serviceNumber", act.getBody().get("serviceNumber"));
-
-        model.put("installationText", act.getBody().get("installationText"));
-        model.put("conclusionText", act.getBody().get("conclusionText"));
-
-        // 2) Список членов комиссии для блока {{#commissionMembers}}
-        model.put("commissionMembers", act.getBody().get("commissionMembers"));
-
-        // 3) Настраиваем политику для развёртки списка commissionMembers
-        LoopRowTableRenderPolicy loopPolicy = new LoopRowTableRenderPolicy();
-        Configure config = Configure.builder()
-                .bind("commissionMembers", loopPolicy)
-                .build();
-
-        // 4) Подготовка выходного файла
-        String filename = String.format("SERVICE_act_%d.docx", act.getId());
+        String filename = String.format("SERVICE_act_%d.docx", dto.getId());
         Path outputDir = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(outputDir);
         File outFile = outputDir.resolve(filename).toFile();
 
-        // 5) Рендеринг шаблона
         try (InputStream is = ServiceTemplate.getInputStream();
-             XWPFTemplate tpl = XWPFTemplate.compile(is, config).render(model);
+             XWPFTemplate tpl = XWPFTemplate.compile(is).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {
             tpl.write(fos);
         }
@@ -171,13 +154,12 @@ public class FileUtil {
     }
 
     public File generateAct(ActDTO act) throws IOException {
-        switch (act.getType()) {
+        return switch (act.getType()) {
             case FIU10 -> generateFIU10Act(act);
             case FMU73 -> generateFMU73Act(act);
             case SERVICE -> generateServiceAct(act);
             default -> throw new IllegalArgumentException("Unsupported type: " + act.getType());
-        }
-        return null;
+        };
     }
 
 
