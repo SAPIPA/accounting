@@ -2,7 +2,7 @@ package org.vrk.accounting.util.file;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.data.*;
+import com.deepoove.poi.data.Pictures;
 import com.deepoove.poi.data.style.BorderStyle;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import lombok.RequiredArgsConstructor;
@@ -10,21 +10,29 @@ import org.apache.poi.xwpf.usermodel.XWPFTable.XWPFBorderType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.vrk.accounting.domain.Item;
 import org.vrk.accounting.domain.dto.*;
+import org.vrk.accounting.repository.ItemEmployeeRepository;
+import org.vrk.accounting.repository.ItemRepository;
+import org.vrk.accounting.service.EmployeeService;
+import org.vrk.accounting.service.ItemService;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FileUtil {
+
+    private final EmployeeService employeeService;
+    private final ItemEmployeeRepository itemEmployeeRepository;
+    private final ItemService itemService;
+    private final ItemRepository itemRepository;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -292,51 +300,83 @@ public class FileUtil {
         };
     }
 
-    public File generateInventoryList(InventoryDTO inventory,
-                                      Map<UUID, String> commissionNames,
-                                      Map<Long, ItemDTO> itemIndex) throws IOException {
-        // 1) Заполняем простые поля
-        Map<String, Object> model = new HashMap<>();
-        LocalDateTime start = inventory.getStartDate();
-        LocalDateTime end   = inventory.getEndDate();
-        model.put("startDate", start.format(DATE_FORMATTER));
-        model.put("endDate",   end  .format(DATE_FORMATTER));
+    public File generateInventoryList(InventoryDTO dto) throws IOException {
+        // 1) Сразу собираем «простые» поля
+        String startDate = String.valueOf(dto.getStartDate());
+        ItemEmployeeDTO responsibleEmployee = employeeService.toDto(
+                itemEmployeeRepository.findById(dto.getResponsibleEmployeeId()).orElseThrow());
+        String responsibleEmployeeName = responsibleEmployee.getLastName()
+                + " " + responsibleEmployee.getFirstName()
+                + " " + responsibleEmployee.getLastName();
+        String responsibleEmployeePosition = responsibleEmployee.getPlans();
 
-        // 2) Разворачиваем список ФИО членов комиссии
-        //    Предполагаем, что commissionNames содержит маппинг UUID → ФИО
-//        List<String> commissionMembers = inventory.getCommissionMemberIds().stream()
-//                .map(commissionNames::get)
-//                .collect(Collectors.toList());
-//        model.put("commissionMembers", commissionMembers);
+        ItemEmployeeDTO commissionChairman = employeeService.toDto(
+                itemEmployeeRepository.findById(dto.getCommissionChairman()).orElseThrow());
+        String commissionChairmanName = commissionChairman.getLastName()
+                + " " + commissionChairman.getFirstName()
+                + " " + commissionChairman.getLastName();
+        String commissionChairmanPosition = commissionChairman.getPlans();
 
-        // 3) Собираем список позиций описи для таблицы
-        //    Каждая InventoryListDTO дополняется детальной инфой из itemIndex
-        List<Map<String, Object>> rows = new ArrayList<>();
-        for (InventoryListDTO entry : inventory.getInventoryLists()) {
-            ItemDTO item = itemIndex.get(entry.getItemId());
-            Map<String, Object> row = new HashMap<>();
-            row.put("name",            item.getName());
-            row.put("inventoryNumber", item.getInventoryNumber());
-            row.put("isPresent",       entry.isPresent() ? "Да" : "Нет");
-            row.put("note",            entry.getNote() == null ? "" : entry.getNote());
-            rows.add(row);
+        // 2) Формируем список items: List<Map<String, Object>>
+        List<InventoryListDTO> inventoryLists = dto.getInventoryLists();
+        List<Map<String, Object>> itemsData = new ArrayList<>();
+
+        if (inventoryLists != null && !inventoryLists.isEmpty()) {
+            int counter = 1;
+            for (InventoryListDTO il : inventoryLists) {
+                // Получаем информацию об объекте (ItemDTO), чтобы взять его название
+                ItemDTO itemDto = itemService.toDto(
+                        itemRepository.findById(il.getItemId()).orElseThrow());
+                String presentText = il.isPresent() ? "Да" : "Нет";
+
+                Map<String, Object> row = new HashMap<>();
+                row.put("index", counter++);
+                row.put("name", itemDto.getName());
+                row.put("serviceNumber", itemDto.getInventoryNumber());
+                row.put("cost", itemDto.getCost());
+                row.put("present", presentText);
+                row.put("note", il.getNote().isEmpty() ? "-" : il.getNote());
+                itemsData.add(row);
+            }
         }
-        model.put("items", rows);
 
-        // 4) Привязываем политику развёртывания циклов по тегам {{#items}} и {{#commissionMembers}}
+        // 3) Собираем модель и привязываем политику LoopRowTableRenderPolicy
+        Map<String, Object> model = new HashMap<>();
+        model.put("startDate", startDate);
+        model.put("responsibleEmployeeName", responsibleEmployeeName);
+        model.put("responsibleEmployeePosition", responsibleEmployeePosition);
+        model.put("commissionChairmanName", commissionChairmanName);
+        model.put("commissionChairmanPosition", commissionChairmanPosition);
+
+        // Кладём уже готовый список в модель под ключом "items"
+        model.put("items", itemsData);
+
+        // Создаём политику, чтобы POI-TL «завернул» вторую строку таблицы в цикл
         LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
         Configure config = Configure.builder()
                 .bind("items", policy)
-                .bind("commissionMembers", policy)
                 .build();
 
-        // 5) Подготавливаем выходной файл
-        String filename = String.format("InventoryList_%d.docx", inventory.getId());
+        // 4) Стиль границ (если в шаблоне нужны рамки; опционально — можно убрать)
+        BorderStyle borderStyle = new BorderStyle();
+        borderStyle.setColor("A6A6A6");
+        borderStyle.setSize(4);
+        borderStyle.setType(XWPFBorderType.SINGLE);
+        // Важно: саму политику рамки можно связать в шаблоне прямо через тег,
+        // если вам надо, чтобы каждая строка получала одинаковую рамку.
+        // Например, в шаблоне вместо {{index}} вы можете писать {{@tableLoop:items,index}};
+        // тогда рамки будут применяться автоматически.
+        // Если же всё ещё хотите настраивать рамки через Java,
+        // то придётся использовать более сложные TableRenderPolicy.
+        // Но в простом случае LoopRowTableRenderPolicy умеет копировать формат ячеек «как есть» из шаблона.
+
+        // 5) Путь и имя выходного файла
+        String filename = String.format("InventoryList_%d.docx", dto.getId());
         Path outputDir = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(outputDir);
         File outFile = outputDir.resolve(filename).toFile();
 
-        // 6) Рендерим шаблон
+        // 6) Компиляция шаблона с указанной конфигурацией и рендеринг
         try (InputStream is = InventoryListTemplate.getInputStream();
              XWPFTemplate tpl = XWPFTemplate.compile(is, config).render(model);
              FileOutputStream fos = new FileOutputStream(outFile)) {

@@ -7,7 +7,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,7 +21,9 @@ import org.vrk.accounting.domain.dto.InventoryListDTO;
 import org.vrk.accounting.domain.dto.ItemDTO;
 import org.vrk.accounting.service.InventoryListService;
 import org.vrk.accounting.service.InventoryService;
+import org.vrk.accounting.util.file.FileUtil;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,8 +41,7 @@ import java.util.UUID;
 public class InventoryController {
 
     private final InventoryService inventoryService;
-    private final InventoryListService inventoryListService;
-
+    private final FileUtil fileUtil;
     /**
      * 1) Подготовить данные для инициации (рис. 6):
      *    GET /api/inventories/prepare-init/{initiatorId}
@@ -153,11 +157,18 @@ public class InventoryController {
     @Operation(
             security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{id}/results")
-    public ResponseEntity<InventoryDTO> saveResults(
+    public ResponseEntity<FileSystemResource> saveResults(
             @PathVariable("id") Long id,
-            @RequestBody List<InventoryListDTO> lists) {
-
+            @RequestBody List<InventoryListDTO> lists
+    ) throws IOException {
         InventoryDTO result = inventoryService.saveInventoryResults(id, lists);
-        return ResponseEntity.ok(result);
+        FileSystemResource fileResource = new FileSystemResource(fileUtil.generateInventoryList(result));
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=inventory.docx");
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(fileResource);
     }
 }

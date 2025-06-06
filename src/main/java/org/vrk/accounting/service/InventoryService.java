@@ -15,10 +15,10 @@ import org.vrk.accounting.repository.ItemEmployeeRepository;
 import org.vrk.accounting.repository.ItemRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +29,11 @@ public class InventoryService {
     private final InventoryRepository inventoryRepo;
     private final ItemEmployeeRepository empRepo;
     private final ItemRepository itemRepo;
+
+    public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
 
     /**
      * Подготовка данных для экрана «Инициация».
@@ -191,17 +196,11 @@ public class InventoryService {
 
         UUID molId = inv.getResponsibleEmployee().getId();
 
-        // служебные (isPersonal == false)
         List<Item> service = itemRepo.findAllByResponsible_Id(molId).stream()
                 .filter(item -> Boolean.FALSE.equals(item.getIsPersonal()))
                 .collect(Collectors.toList());
 
-        // личные (фактические), но тоже отфильтруем по isPersonal == false
-        List<Item> personal = itemRepo.findAllByCurrentItemEmployee_Id(molId).stream()
-                .filter(item -> Boolean.FALSE.equals(item.getIsPersonal()))
-                .collect(Collectors.toList());
-
-        return Stream.concat(service.stream(), personal.stream())
+        return service.stream()
                 .map(this::itemToDto)
                 .collect(Collectors.toList());
     }

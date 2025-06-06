@@ -26,7 +26,7 @@ public class EmployeeService {
     private final RZDEmployeeRepository rzdRepo;
     private final PlaceRepository placeRepo;
 
-    private ItemEmployeeDTO toDto(ItemEmployee entity) {
+    public ItemEmployeeDTO toDto(ItemEmployee entity) {
         String snils = entity.getSnils();
 
         // 1) Пытаемся загрузить метаданные сотрудника по SNILS
@@ -201,9 +201,6 @@ public class EmployeeService {
 
         return dtos;
     }
-
-
-
 
     /** Список всех пользователей */
     @Transactional

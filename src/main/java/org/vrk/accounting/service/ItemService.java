@@ -50,7 +50,7 @@ public class ItemService {
         return builder.build();
     }
 
-    private ItemDTO toDto(Item entity) {
+    public ItemDTO toDto(Item entity) {
         // Вычисляем office по приоритету: currentItemEmployee → responsible → null
         String officeValue = null;
         if (entity.getCurrentItemEmployee() != null) {
@@ -63,6 +63,7 @@ public class ItemService {
                 .id(entity.getId())
                 .isPersonal(entity.getIsPersonal())
                 .name(entity.getName())
+                .cost(entity.getCost())
                 .inventoryNumber(entity.getInventoryNumber())
                 .measuringUnit(entity.getMeasuringUnit())
                 .count(entity.getCount())

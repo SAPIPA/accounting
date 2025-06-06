@@ -47,6 +47,10 @@ public class ItemDTO implements Serializable {
      * */
     private Integer count;
     /**
+     * Стоимость
+     * */
+    private String cost;
+    /**
      * Дата поступления
      * */
     private LocalDateTime receiptDate;
